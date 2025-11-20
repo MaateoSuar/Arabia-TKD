@@ -1,0 +1,1082 @@
+/*
+  Estética general Arabia TKD
+  - Títulos con fuente estilo brush (Ruslan Display)
+  - Textos con Inter
+  - Paleta: rojo #C62828, azul #0D47A1, negro, blanco
+  - Botones tipo sello marcial, bordes gruesos
+  - Mobile-first
+*/
+
+:root {
+  --tkd-red: #c62828;
+  --tkd-blue: #0d47a1;
+  --tkd-black: #000000;
+  --tkd-white: #ffffff;
+  --bg-dark: #1c1c1c;
+  --bg-panel: #262626;
+  --border-strong: 3px solid #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.app-body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--tkd-white);
+}
+
+.tkd-title,
+.tkd-title-sub,
+.section-heading,
+.home-title-main,
+.home-title-em {
+  font-family: 'Ruslan Display', system-ui, sans-serif;
+}
+
+.app-header {
+  background: linear-gradient(90deg, rgba(198, 40, 40, 0.85), #000000, rgba(13, 71, 161, 0.85));
+  border-bottom: 4px solid var(--tkd-black);
+  box-shadow: 0 0 0 3px #000000;
+}
+
+.app-header-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 10px 10px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.app-header-logo-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-header-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 999px;
+  border: 2px solid #000000;
+  box-shadow: 0 0 0 2px #000000;
+  object-fit: cover;
+  background-color: #ffffff;
+}
+
+.tkd-title {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+.tkd-title-sub {
+  margin: 2px 0 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--tkd-red);
+}
+
+.tkd-subline {
+  margin: 6px 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #f5f5f5;
+}
+
+.app-header-motto {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: #f0f0f0;
+  text-align: right;
+}
+
+.app-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 10px 80px;
+}
+
+.app-footer {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 6px 10px 70px;
+  font-size: 0.7rem;
+  color: #e0e0e0;
+}
+
+.app-footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-footer-line {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+}
+
+.app-footer-text {
+  margin: 0;
+  text-align: center;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section {
+  display: none;
+}
+
+.section-active {
+  display: block;
+}
+
+/* Panel marcial principal */
+
+.panel.martial-panel {
+  position: relative;
+  border: var(--border-strong);
+  background: radial-gradient(circle at top left, rgba(198, 40, 40, 0.16), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(13, 71, 161, 0.16), transparent 55%),
+    var(--bg-panel);
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px #000000;
+  overflow: hidden;
+}
+
+.panel-brush {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.panel-brush-red {
+  background: linear-gradient(130deg, rgba(198, 40, 40, 0.32), transparent 60%);
+}
+
+.panel-brush-blue {
+  background: linear-gradient(310deg, rgba(13, 71, 161, 0.32), transparent 60%);
+}
+
+.panel-content {
+  position: relative;
+  padding: 16px 14px 18px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.section-heading {
+  margin: 0;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  border-left: 4px solid var(--tkd-red);
+  padding-left: 10px;
+}
+
+.subheading {
+  margin: 12px 0 8px;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #f5f5f5;
+}
+
+/* Botones estilo "sello marcial" */
+
+.btn-martial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 5px;
+  border: 2px solid #000000;
+  background-color: var(--tkd-red);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px #000000;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+}
+
+.btn-martial:hover {
+  background-color: #e53935;
+}
+
+.btn-martial:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 1px #000000;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 5px;
+  border: 2px solid #000000;
+  background-color: #1e1e1e;
+  color: #f0f0f0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 1px #000000;
+}
+
+.btn-icon {
+  border-radius: 4px;
+  border: 2px solid #000000;
+  background-color: #181818;
+  color: #f5f5f5;
+  cursor: pointer;
+  width: 34px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.btn-icon:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 1px #000000;
+}
+
+/* Hoja principal */
+
+.home-hero-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.home-hero-text {
+  flex: 1 1 auto;
+}
+
+.home-label {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #f5f5f5;
+}
+
+.home-title-main {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  color: var(--tkd-red);
+}
+
+.home-description {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: #d8d8d8;
+}
+
+.home-belt-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.home-belt-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid #000000;
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.home-belt-segment {
+  width: 10px;
+  height: 14px;
+  display: block;
+}
+
+.belt-white {
+  background-color: #f5f5f5;
+}
+
+.belt-yellow {
+  background-color: #fdd835;
+}
+
+.belt-green {
+  background-color: #43a047;
+}
+
+.belt-blue {
+  background-color: #0d47a1;
+}
+
+.belt-red {
+  background-color: #c62828;
+}
+
+.belt-black {
+  background-color: #000000;
+}
+
+.home-belt-caption {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #bdbdbd;
+  text-align: center;
+}
+
+.home-principles {
+  margin-top: 18px;
+}
+
+.principles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.principle-card {
+  border: 2px solid #000000;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 8px 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.principle-card-wide {
+  grid-column: span 2;
+}
+
+.principle-icon {
+  font-size: 1.2rem;
+}
+
+.principle-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.home-motto {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.motto-text {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.motto-separator {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+}
+
+/* Tabla de alumnos */
+
+.table-wrapper {
+  margin-top: 6px;
+  border-radius: 4px;
+  overflow: auto;
+  border: 1px solid #222;
+  background-color: #141414;
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+/* Selectores de Fecha y Horario en Exámenes */
+.picker-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 2px solid #000000;
+  background: radial-gradient(circle at top left, rgba(198, 40, 40, 0.16), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(13, 71, 161, 0.16), transparent 55%), #111111;
+  color: #f5f5f5;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-display::after {
+  content: '▼';
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+}
+
+.picker-popover.hidden {
+  display: none;
+}
+
+.picker-popover {
+  position: absolute;
+  z-index: 30;
+  margin-top: 6px;
+}
+
+.picker-popover-inner {
+  border-radius: 6px;
+  border: 2px solid #000000;
+  background-color: #101010;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+  padding: 8px 10px 10px;
+}
+
+.picker-popover-inner input[type='date'],
+.picker-popover-inner input[type='time'] {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.picker-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.exam-time-picker {
+  min-width: 230px;
+}
+
+.exam-time-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.exam-time-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.exam-time-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.exam-time-btn {
+  min-width: 32px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid #333;
+  background-color: #151515;
+  color: #f5f5f5;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.exam-time-btn.exam-time-selected {
+  border-color: var(--tkd-red);
+  background-color: #b71c1c;
+}
+
+.exam-time-picker-row input[type='text'] {
+  flex: 1;
+  border-radius: 4px;
+  border: 2px solid #000000;
+  padding: 4px 6px;
+  background-color: #050505;
+  color: #f5f5f5;
+  font-size: 0.75rem;
+}
+
+.exam-inline-calendar {
+  width: 230px;
+  font-size: 0.7rem;
+  color: #f5f5f5;
+}
+
+.exam-inline-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.exam-inline-calendar-month {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.exam-inline-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.exam-inline-calendar-cell {
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 3px;
+}
+
+.exam-inline-calendar-cell.exam-inline-header {
+  font-weight: 600;
+}
+
+.exam-inline-calendar-cell.exam-inline-day {
+  cursor: pointer;
+}
+
+.exam-inline-calendar-cell.exam-inline-day:hover {
+  background-color: #212121;
+}
+
+.exam-inline-day-disabled {
+  color: #666;
+  cursor: default;
+}
+
+.exam-inline-day-disabled:hover {
+  background-color: transparent;
+}
+
+.exam-inline-calendar-cell.exam-inline-selected {
+  background-color: var(--tkd-red);
+}
+
+.students-table thead {
+  background-color: #181818;
+}
+
+.students-table th,
+.students-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #222222;
+  text-align: left;
+}
+
+.students-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+}
+
+.students-table tbody tr:nth-child(even) {
+  background-color: #101010;
+}
+
+.students-table tbody tr:hover {
+  background-color: #161616;
+}
+
+.students-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.students-menu-btn {
+  background: none;
+  border: none;
+  color: #f5f5f5;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.students-empty-state {
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  color: #bdbdbd;
+}
+
+.students-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.students-filter-field {
+  max-width: 180px;
+}
+
+.belt-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid #000000;
+}
+
+.belt-blanco {
+  background-color: #f5f5f5;
+  color: #000000;
+}
+
+.belt-amarillo {
+  background-color: #fdd835;
+  color: #000000;
+}
+
+.belt-verde {
+  background-color: #43a047;
+  color: #ffffff;
+}
+
+.belt-azul {
+  background-color: #0d47a1;
+  color: #ffffff;
+}
+
+.belt-rojo {
+  background-color: #c62828;
+  color: #ffffff;
+}
+
+.belt-negro {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Modal */
+
+.modal.hidden {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  border-radius: 6px;
+  border: var(--border-strong);
+  background: #101010;
+  box-shadow: 0 0 0 3px #000000;
+  padding: 10px 12px 12px;
+  overflow: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.martial-form {
+  border-top: 2px solid #222;
+  padding-top: 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.form-field span {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  border-radius: 4px;
+  border: 2px solid #000000;
+  padding: 6px 8px;
+  background-color: #050505;
+  color: #f5f5f5;
+  font-size: 0.75rem;
+}
+
+.form-field-full {
+  grid-column: span 2;
+}
+
+.form-actions,
+.modal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Calendario */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.calendar-month-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  font-size: 0.7rem;
+}
+
+.calendar-cell {
+  min-height: 46px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #222;
+  background-color: #050505;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-cell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #e0e0e0;
+}
+
+.calendar-cell-today {
+  border-color: var(--tkd-blue);
+}
+
+.calendar-event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--tkd-blue);
+}
+
+.calendar-cell-exam {
+  border-color: var(--tkd-red);
+}
+
+.calendar-birthday-dot {
+  background-color: #43a047;
+}
+
+.calendar-cell-birthday {
+  border-color: #43a047;
+}
+
+.calendar-details {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #222;
+  font-size: 0.8rem;
+}
+
+.calendar-details-title {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Exámenes */
+
+.exams-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.exams-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+}
+
+.exams-list-item {
+  border-radius: 4px;
+  border: 1px solid #222;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.exams-list-item-selected {
+  border-color: var(--tkd-red);
+  background-color: #181818;
+}
+
+.exams-list-item:hover {
+  background-color: #202020;
+}
+
+.exam-item-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exam-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid #555;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.exams-list-item-selected .exam-checkbox {
+  border-color: var(--tkd-red);
+  background-color: #b71c1c;
+}
+
+.exam-pdf-box {
+  margin-top: 10px;
+  border-radius: 4px;
+  border: 1px dashed #333;
+  padding: 8px;
+  font-size: 0.75rem;
+}
+
+.exam-pdf-text {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+}
+
+.exam-pdf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+/* Cuotas */
+
+.fees-form {
+  margin-bottom: 12px;
+}
+
+.fees-status {
+  border-radius: 4px;
+  border: 1px solid #222;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+.fees-status-body {
+  margin-top: 4px;
+}
+
+.fees-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+}
+
+.student-suggestions {
+  position: absolute;
+  z-index: 25;
+  margin-top: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+  background-color: #101010;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.student-suggestion-item {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.student-suggestion-item:hover {
+  background-color: #1e1e1e;
+}
+
+/* Navegación inferior tipo app mobile */
+
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  border-top: 4px solid #000000;
+  background-color: rgba(5, 5, 5, 0.96);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  max-width: 150px;
+  padding: 6px 4px 4px;
+  border-right: 1px solid #222;
+  border-left: none;
+  border-top: none;
+  border-bottom: none;
+  background: transparent;
+  color: #cccccc;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.bottom-nav-item:last-child {
+  border-right: none;
+}
+
+.bottom-nav-item .icon {
+  font-size: 0.9rem;
+}
+
+.bottom-nav-item-active {
+  color: var(--tkd-red);
+  font-weight: 600;
+  background: #101010;
+}
+
+/* Utilidades */
+
+.text-muted {
+  color: #bdbdbd;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid #333;
+}
+
+.status-pill-ok {
+  border-color: #2e7d32;
+  color: #a5d6a7;
+}
+
+.status-pill-debt {
+  border-color: #c62828;
+  color: #ef9a9a;
+}
+
+@media (min-width: 640px) {
+  .app-main {
+    padding-inline: 18px;
+    padding-bottom: 90px;
+  }
+
+  .app-footer {
+    padding-inline: 18px;
+    padding-bottom: 80px;
+  }
+
+  .panel-content {
+    padding: 18px 18px 20px;
+  }
+
+  .home-title-main {
+    font-size: 1.9rem;
+  }
+
+  .home-title-em {
+    font-size: 1.7rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .app-header-main {
+    padding-inline: 18px;
+  }
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Arabia TKD - Escuela de Taekwon-Do</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body class="app-body">
+    <header class="app-header">
+      <div class="app-header-main">
+        <div class="app-header-logo-block">
+          <img
+            src="{{ url_for('static', filename='img/logo.jpg') }}"
+            alt="Logo Arabia TKD"
+            class="app-header-logo"
+          />
+          <div>
+            <h1 class="tkd-title">Escuela Familiar de Taekwondo</h1>
+            <h2 class="tkd-title-sub">Arabia TKD</h2>
+          </div>
+        </div>
+        <div class="app-header-motto">
+          <span>Sobre todo, ser el EJEMPLO</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section id="section-home" class="section section-active">
+        {% include 'sections/home.html' %}
+      </section>
+
+      <section id="section-students" class="section">
+        {% include 'sections/students.html' %}
+      </section>
+
+      <section id="section-calendar" class="section">
+        {% include 'sections/calendar.html' %}
+      </section>
+
+      <section id="section-exams" class="section">
+        {% include 'sections/exams.html' %}
+      </section>
+
+      <section id="section-fees" class="section">
+        {% include 'sections/fees.html' %}
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer-inner">
+        <div class="app-footer-line"></div>
+        <p class="app-footer-text">
+          "No falten y no lleguen tarde…"  Master VII DAN Fernando A. Monteros
+        </p>
+      </div>
+    </footer>
+
+    <nav class="bottom-nav">
+      <button class="bottom-nav-item bottom-nav-item-active" data-target="section-home">
+        <span class="icon">☯</span>
+        <span>Hoja</span>
+      </button>
+      <button class="bottom-nav-item" data-target="section-students">
+        <span class="icon">🥋</span>
+        <span>Alumnos</span>
+      </button>
+      <button class="bottom-nav-item" data-target="section-calendar">
+        <span class="icon">📜</span>
+        <span>Calendario</span>
+      </button>
+      <button class="bottom-nav-item" data-target="section-exams">
+        <span class="icon">印</span>
+        <span>Exámenes</span>
+      </button>
+      <button class="bottom-nav-item" data-target="section-fees">
+        <span class="icon">币</span>
+        <span>Cuotas</span>
+      </button>
+    </nav>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>

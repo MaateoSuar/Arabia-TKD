@@ -1,0 +1,90 @@
+<div class="panel martial-panel">
+  <div class="panel-content">
+    <div class="section-header">
+      <h3 class="section-heading">Exámenes</h3>
+    </div>
+
+    <div class="exams-layout">
+      <div class="exams-column">
+        <h4 class="subheading">Agendar examen</h4>
+        <form id="exam-form" class="martial-form">
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Fecha</span>
+              <button type="button" id="exam-date-display" class="picker-display">Seleccionar fecha</button>
+              <div id="exam-date-popover" class="picker-popover hidden">
+                <div class="picker-popover-inner">
+                  <div id="exam-date-calendar" class="exam-inline-calendar"></div>
+                  <input id="exam-date" type="hidden" required />
+                  <div class="picker-popover-actions">
+                    <button type="button" class="btn-secondary" data-picker="date-cancel">Cancelar</button>
+                    <button type="button" class="btn-martial" data-picker="date-apply">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </label>
+            <label class="form-field">
+              <span>Horario</span>
+              <button type="button" id="exam-time-display" class="picker-display">Seleccionar horario</button>
+              <div id="exam-time-popover" class="picker-popover hidden">
+                <div class="picker-popover-inner exam-time-picker">
+                  <div class="exam-time-picker-row">
+                    <span class="exam-time-label">Hora</span>
+                    <input id="exam-time-hour" type="text" inputmode="numeric" maxlength="2" placeholder="HH" />
+                  </div>
+                  <div class="exam-time-picker-row">
+                    <span class="exam-time-label">Minutos</span>
+                    <input id="exam-time-minute" type="text" inputmode="numeric" maxlength="2" placeholder="MM" />
+                  </div>
+                  <small class="text-muted">Formato 24 hs (ej: 18:30)</small>
+                  <input id="exam-time" type="hidden" required />
+                  <div class="picker-popover-actions">
+                    <button type="button" class="btn-secondary" data-picker="time-cancel">Cancelar</button>
+                    <button type="button" class="btn-martial" data-picker="time-apply">Aceptar</button>
+                  </div>
+                </div>
+              </div>
+            </label>
+            <label class="form-field">
+              <span>Tipo de graduación</span>
+              <input id="exam-level" type="text" required placeholder="Ej.: 10º GUP, 1º DAN" />
+            </label>
+            <label class="form-field">
+              <span>Lugar</span>
+              <input id="exam-place" type="text" required />
+            </label>
+            <label class="form-field form-field-full">
+              <span>Notas u observaciones</span>
+              <textarea id="exam-notes" rows="3"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-martial">Agendar examen</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="exams-column">
+        <h4 class="subheading">Exámenes agendados</h4>
+        <ul id="exams-list" class="exams-list"></ul>
+
+        <div class="exam-pdf-box" id="exam-pdf-box" data-event-id="">
+          <p class="exam-pdf-text">
+            Seleccioná un examen para generar el PDF de inscripción con los datos del alumno.
+          </p>
+          <div class="exam-pdf-actions">
+            <label class="form-field">
+              <span>Alumno</span>
+              <input id="exam-student-name" type="text" placeholder="Buscar Alumno" autocomplete="off" />
+              <input id="exam-student-id" type="hidden" />
+              <div id="exam-student-suggestions" class="student-suggestions"></div>
+            </label>
+            <button id="btn-generate-exam-pdf" class="btn-martial" disabled>
+              Generar PDF de Inscripción
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,45 @@
+<div class="panel martial-panel">
+  <div class="panel-content">
+    <div class="section-header">
+      <h3 class="section-heading">Cuotas</h3>
+    </div>
+
+    <form id="fees-form" class="martial-form fees-form">
+      <div class="form-grid">
+        <label class="form-field">
+          <span>Alumno</span>
+          <input id="fees-student-name" type="text" placeholder="Buscar Alumno por nombre" autocomplete="off" />
+          <input id="fees-student-id" type="hidden" required />
+          <div id="fees-student-suggestions" class="student-suggestions"></div>
+        </label>
+        <label class="form-field">
+          <span>Fecha de pago</span>
+          <button type="button" id="fees-date-display" class="picker-display">Seleccionar fecha</button>
+          <div id="fees-date-popover" class="picker-popover hidden">
+            <div class="picker-popover-inner">
+              <div id="fees-date-calendar" class="exam-inline-calendar"></div>
+              <input id="fees-payment-date" type="hidden" />
+              <div class="picker-popover-actions">
+                <button type="button" class="btn-secondary" data-picker="fees-date-cancel">Cancelar</button>
+                <button type="button" class="btn-martial" data-picker="fees-date-apply">Aceptar</button>
+              </div>
+            </div>
+          </div>
+        </label>
+        <label class="form-field">
+          <span>Monto</span>
+          <input id="fees-amount" type="number" min="0" step="0.01" />
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="btn-load-fees" class="btn-secondary">Ver estado</button>
+        <button type="submit" class="btn-martial">Registrar pago</button>
+      </div>
+    </form>
+
+    <div id="fees-status" class="fees-status">
+      <h4 class="subheading">Estado del alumno</h4>
+      <div id="fees-status-body" class="fees-status-body">Buscá un alumno para ver su estado de cuotas.</div>
+    </div>
+  </div>
+</div>

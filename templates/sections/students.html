@@ -1,0 +1,165 @@
+<div class="panel martial-panel">
+  <div class="panel-content">
+    <div class="section-header">
+      <h3 class="section-heading">Alumnos</h3>
+      <button id="btn-open-create-student" class="btn-martial">+ Crear Alumno</button>
+    </div>
+
+    <div class="students-toolbar">
+      <label class="form-field students-filter-field">
+        <span>Cinturón</span>
+        <select id="students-belt-filter">
+          <option value="">Todos</option>
+          <option value="blanco">Blanco</option>
+          <option value="amarillo">Amarillo</option>
+          <option value="verde">Verde</option>
+          <option value="azul">Azul</option>
+          <option value="rojo">Rojo</option>
+          <option value="negro">Negro</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th>Apellido</th>
+            <th>Nombre</th>
+            <th>Edad</th>
+            <th>Cinturón</th>
+            <th>Nombre del padre</th>
+            <th>Celular del padre</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="students-tbody"></tbody>
+      </table>
+      <div id="students-empty-state" class="students-empty-state">
+        Aún no hay Alumnos cargados. Usá "Crear Alumno" para comenzar el legajo de la escuela.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-student" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="modal-student-title" class="section-heading">Crear Alumno</h3>
+      <button id="btn-close-student" class="btn-icon">✕</button>
+    </div>
+    <form id="student-form" class="martial-form">
+      <input type="hidden" id="student-id" />
+
+      <div class="form-grid">
+        <label class="form-field">
+          <span>Nombre completo</span>
+          <input id="student-full-name" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>DNI</span>
+          <input id="student-dni" type="text" required placeholder="42.215.839" />
+        </label>
+
+        <label class="form-field">
+          <span>Sexo</span>
+          <select id="student-gender" required>
+            <option value="">Seleccionar</option>
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Fecha de nacimiento</span>
+          <input id="student-birthdate" type="date" required />
+        </label>
+
+        <label class="form-field">
+          <span>Grupo sanguíneo</span>
+          <input id="student-blood" type="text" required placeholder="0+, A-, etc." />
+        </label>
+
+        <label class="form-field">
+          <span>Nacionalidad</span>
+          <input id="student-nationality" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Provincia</span>
+          <input id="student-province" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>País</span>
+          <input id="student-country" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Localidad</span>
+          <input id="student-city" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Dirección</span>
+          <input id="student-address" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Código Postal</span>
+          <input id="student-zip" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Colegio (opcional)</span>
+          <input id="student-school" type="text" />
+        </label>
+
+        <label class="form-field">
+          <span>Cinturón</span>
+          <select id="student-belt" required>
+            <option value="">Seleccionar</option>
+            <option value="blanco">Blanco</option>
+            <option value="amarillo">Amarillo</option>
+            <option value="verde">Verde</option>
+            <option value="azul">Azul</option>
+            <option value="rojo">Rojo</option>
+            <option value="negro">Negro</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Nombre completo padre</span>
+          <input id="student-father-name" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Nombre completo madre</span>
+          <input id="student-mother-name" type="text" required />
+        </label>
+
+        <label class="form-field">
+          <span>Celular padre</span>
+          <input id="student-father-phone" type="tel" required />
+        </label>
+
+        <label class="form-field">
+          <span>Celular madre</span>
+          <input id="student-mother-phone" type="tel" required />
+        </label>
+
+        <label class="form-field">
+          <span>Email de alguno de los padres</span>
+          <input id="student-parent-email" type="email" required />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancel-student">Cancelar</button>
+        <button type="submit" class="btn-martial">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
