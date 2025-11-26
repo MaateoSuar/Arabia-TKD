@@ -26,6 +26,17 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+with app.app_context():
+    try:
+        from sqlalchemy import text
+
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE students ADD COLUMN notes TEXT"))
+            conn.commit()
+    except Exception:
+        # Si falla (por ejemplo en SQLite viejo), se ignora y se asume que la tabla se recreará en limpio.
+        pass
+
 
 class Student(db.Model):
     __tablename__ = "students"
@@ -51,6 +62,7 @@ class Student(db.Model):
     father_phone = db.Column(db.String(40))
     mother_phone = db.Column(db.String(40))
     parent_email = db.Column(db.String(120))
+    notes = db.Column(db.Text)
 
 
 class Event(db.Model):
@@ -114,6 +126,7 @@ def api_students():
                 'father_phone': s.father_phone,
                 'mother_phone': s.mother_phone,
                 'parent_email': s.parent_email,
+                'notes': s.notes,
             })
         return jsonify(result)
 
@@ -147,6 +160,7 @@ def api_students():
         father_phone=data.get('father_phone'),
         mother_phone=data.get('mother_phone'),
         parent_email=data.get('parent_email'),
+        notes=data.get('notes'),
     )
     db.session.add(student)
     db.session.commit()
@@ -183,6 +197,7 @@ def api_student_detail(student_id: int):
             'father_phone': student.father_phone,
             'mother_phone': student.mother_phone,
             'parent_email': student.parent_email,
+            'notes': student.notes,
         })
 
     if request.method == 'PUT':
@@ -191,7 +206,7 @@ def api_student_detail(student_id: int):
             'full_name', 'last_name', 'first_name', 'dni', 'gender', 'blood',
             'nationality', 'province', 'country', 'city', 'address', 'zip',
             'school', 'belt', 'father_name', 'mother_name', 'father_phone',
-            'mother_phone', 'parent_email',
+            'mother_phone', 'parent_email', 'notes',
         ]:
             if field in data:
                 setattr(student, field, data[field])

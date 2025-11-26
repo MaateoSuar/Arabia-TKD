@@ -194,10 +194,18 @@ const btnCancelStudentDelete = document.getElementById('btn-cancel-student-delet
 const btnConfirmStudentDelete = document.getElementById('btn-confirm-student-delete');
 const studentDeleteMessage = document.getElementById('student-delete-message');
 
+// Modal de promoción de alumno
+const modalStudentPromote = document.getElementById('modal-student-promote');
+const btnCloseStudentPromote = document.getElementById('btn-close-student-promote');
+const btnCancelStudentPromote = document.getElementById('btn-cancel-student-promote');
+const btnConfirmStudentPromote = document.getElementById('btn-confirm-student-promote');
+const studentPromoteMessage = document.getElementById('student-promote-message');
+
 // Menú emergente reutilizable para acciones de alumno
 let studentActionsMenu = null;
 let currentStudentForMenu = null;
 let pendingDeleteStudent = null;
+let pendingPromoteStudent = null;
 
 function closeStudentActionsMenu() {
   if (studentActionsMenu) {
@@ -274,6 +282,50 @@ function openStudentActionsMenu(triggerBtn, student) {
   menu.appendChild(
     makeItem('Editar alumno', () => {
       openStudentModal({ ...student, full_name: student.full_name });
+    }),
+  );
+
+  // Promover alumno al siguiente cinturón (abre modal de confirmación)
+  menu.appendChild(
+    makeItem('Promover', () => {
+      const BELT_ORDER = [
+        'Blanco',
+        'Blanco Punta Amarilla',
+        'Amarillo',
+        'Amarillo Punta Verde',
+        'Verde',
+        'Verde Punta Azul',
+        'Azul',
+        'Azul Punta Roja',
+        'Rojo',
+        'Rojo Punta Negra',
+        'Negro Primer Dan',
+      ];
+
+      const currentRaw = student.belt || '';
+      const current = currentRaw.toLowerCase();
+      const idx = BELT_ORDER.findIndex((b) => b.toLowerCase() === current);
+
+      if (idx === -1) {
+        alert('No se reconoce el cinturón actual de este alumno. Editá el alumno primero.');
+        return;
+      }
+
+      if (idx >= BELT_ORDER.length - 1) {
+        alert('Este alumno ya tiene el cinturón máximo.');
+        return;
+      }
+
+      const nextBelt = BELT_ORDER[idx + 1];
+      const name = student.full_name || `${student.last_name || ''} ${student.first_name || ''}`.trim();
+
+      if (studentPromoteMessage) {
+        studentPromoteMessage.textContent =
+          `¿Querés promover a ${name || 'este alumno'} de "${currentRaw}" a "${nextBelt}"?`;
+      }
+
+      pendingPromoteStudent = { ...student, nextBelt };
+      modalStudentPromote?.classList.remove('hidden');
     }),
   );
 
@@ -388,6 +440,70 @@ btnConfirmStudentDelete?.addEventListener('click', () => {
       }
       closeStudentDeleteModal();
     });
+});
+
+// --- Modal de promoción de alumno ---
+function closeStudentPromoteModal() {
+  modalStudentPromote?.classList.add('hidden');
+  pendingPromoteStudent = null;
+}
+
+btnCloseStudentPromote?.addEventListener('click', closeStudentPromoteModal);
+btnCancelStudentPromote?.addEventListener('click', closeStudentPromoteModal);
+
+btnConfirmStudentPromote?.addEventListener('click', async () => {
+  if (!pendingPromoteStudent) {
+    closeStudentPromoteModal();
+    return;
+  }
+
+  const BELT_ORDER = [
+    'Blanco',
+    'Blanco Punta Amarilla',
+    'Amarillo',
+    'Amarillo Punta Verde',
+    'Verde',
+    'Verde Punta Azul',
+    'Azul',
+    'Azul Punta Roja',
+    'Rojo',
+    'Rojo Punta Negra',
+    'Negro Primer Dan',
+  ];
+
+  const currentRaw = pendingPromoteStudent.belt || '';
+  const current = currentRaw.toLowerCase();
+  const idx = BELT_ORDER.findIndex((b) => b.toLowerCase() === current);
+
+  if (idx === -1 || idx >= BELT_ORDER.length - 1) {
+    closeStudentPromoteModal();
+    return;
+  }
+
+  const nextBelt = BELT_ORDER[idx + 1];
+
+  try {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const dateStr = `${dd}/${mm}/${yyyy}`;
+
+    const existingNotes = (pendingPromoteStudent.notes || '').trim();
+    const noteLine = `Ascendido a ${nextBelt} - ${dateStr}`;
+    const newNotes = existingNotes ? `${existingNotes}\n${noteLine}` : noteLine;
+
+    await apiSend(`/api/students/${pendingPromoteStudent.id}`, 'PUT', {
+      belt: nextBelt,
+      notes: newNotes,
+    });
+    await loadStudents();
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo ascender al alumno.');
+  } finally {
+    closeStudentPromoteModal();
+  }
 });
 
 async function loadStudents() {
@@ -832,30 +948,40 @@ function initExamGraduationFields() {
 
   // Poblar opciones si están vacías
   if (!examGraduationSelect.options.length) {
+    // Placeholder sin valor real
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccionar graduación';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    examGraduationSelect.appendChild(placeholder);
+
     EXAM_LEVEL_CONFIG.forEach((cfg, index) => {
       const opt = document.createElement('option');
-      opt.value = String(index);
+      // value = índice + 1 para dejar 0 reservado al placeholder
+      opt.value = String(index + 1);
       opt.textContent = `${index + 1}. ${cfg.graduation}`;
       examGraduationSelect.appendChild(opt);
     });
   }
 
   const applyConfigByIndex = (idx) => {
-    const cfg = EXAM_LEVEL_CONFIG[idx];
+    // idx 0 es placeholder; los niveles reales empiezan en 1
+    const cfg = EXAM_LEVEL_CONFIG[idx - 1];
     if (!cfg) return;
     examBeltInput.value = cfg.belt;
     examGupInput.value = cfg.gup;
     examLevelHiddenInput.value = `${cfg.graduation} - ${cfg.belt} - ${cfg.gup}`;
   };
 
-  // Valor por defecto: primera graduación
-  if (examGraduationSelect.selectedIndex < 0) {
-    examGraduationSelect.selectedIndex = 0;
-  }
-  applyConfigByIndex(examGraduationSelect.selectedIndex);
-
   examGraduationSelect.addEventListener('change', () => {
     const idx = Number(examGraduationSelect.value) || examGraduationSelect.selectedIndex || 0;
+    if (idx <= 0) {
+      examBeltInput.value = '';
+      examGupInput.value = '';
+      examLevelHiddenInput.value = '';
+      return;
+    }
     applyConfigByIndex(idx);
   });
 }
