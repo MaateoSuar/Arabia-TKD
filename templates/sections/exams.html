@@ -11,17 +11,7 @@
           <div class="form-grid">
             <label class="form-field">
               <span>Fecha</span>
-              <button type="button" id="exam-date-display" class="picker-display">Seleccionar fecha</button>
-              <div id="exam-date-popover" class="picker-popover hidden">
-                <div class="picker-popover-inner">
-                  <div id="exam-date-calendar" class="exam-inline-calendar"></div>
-                  <input id="exam-date" type="hidden" required />
-                  <div class="picker-popover-actions">
-                    <button type="button" class="btn-secondary" data-picker="date-cancel">Cancelar</button>
-                    <button type="button" class="btn-martial" data-picker="date-apply">Aceptar</button>
-                  </div>
-                </div>
-              </div>
+              <input id="exam-date" type="text" required />
             </label>
             <label class="form-field">
               <span>Horario</span>
@@ -46,8 +36,17 @@
               </div>
             </label>
             <label class="form-field">
-              <span>Tipo de graduación</span>
-              <input id="exam-level" type="text" required placeholder="Ej.: 10º GUP, 1º DAN" />
+              <span>Graduación</span>
+              <select id="exam-graduation" required></select>
+              <input id="exam-level" type="hidden" required />
+            </label>
+            <label class="form-field">
+              <span>Cinturón</span>
+              <input id="exam-belt" type="text" readonly placeholder="Se completa según la graduación" />
+            </label>
+            <label class="form-field">
+              <span>Gup</span>
+              <input id="exam-gup" type="text" readonly placeholder="Se completa según la graduación" />
             </label>
             <label class="form-field">
               <span>Lugar</span>
@@ -70,19 +69,43 @@
 
         <div class="exam-pdf-box" id="exam-pdf-box" data-event-id="">
           <p class="exam-pdf-text">
-            Seleccioná un examen para generar el PDF de inscripción con los datos del alumno.
+            Seleccioná un examen y un alumno para generar los PDF.
           </p>
+
+          <label class="form-field form-field-full">
+            <span>Alumno</span>
+            <input id="exam-student-name" type="text" placeholder="Buscar Alumno" autocomplete="off" />
+            <input id="exam-student-id" type="hidden" />
+            <div id="exam-student-suggestions" class="student-suggestions"></div>
+          </label>
+
           <div class="exam-pdf-actions">
-            <label class="form-field">
-              <span>Alumno</span>
-              <input id="exam-student-name" type="text" placeholder="Buscar Alumno" autocomplete="off" />
-              <input id="exam-student-id" type="hidden" />
-              <div id="exam-student-suggestions" class="student-suggestions"></div>
-            </label>
             <button id="btn-generate-exam-pdf" class="btn-martial" disabled>
               Generar PDF de Inscripción
             </button>
+            <button id="btn-generate-eval-pdf" class="btn-martial" disabled>
+              Generar PDF de Evaluación
+            </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-exam-delete" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="section-heading">Eliminar examen</h3>
+        <button id="btn-close-exam-delete" class="btn-icon">✕</button>
+      </div>
+      <div class="martial-form">
+        <p class="text-muted" id="exam-delete-message">
+          ¿Seguro que querés eliminar este examen agendado? Esta acción no se puede deshacer.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-exam-delete">Cancelar</button>
+          <button type="button" class="btn-martial" id="btn-confirm-exam-delete">Eliminar</button>
         </div>
       </div>
     </div>

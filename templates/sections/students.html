@@ -42,6 +42,87 @@
   </div>
 </div>
 
+<div id="modal-student-record" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="section-heading">Legajo del alumno</h3>
+      <button id="btn-close-student-record" class="btn-icon">✕</button>
+    </div>
+    <div class="martial-form">
+      <div class="student-record-grid">
+        <div class="student-record-row">
+          <span class="student-record-label">Nombre completo</span>
+          <span class="student-record-value" id="record-full-name">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">DNI</span>
+          <span class="student-record-value" id="record-dni">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Edad</span>
+          <span class="student-record-value" id="record-age">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Fecha de nacimiento</span>
+          <span class="student-record-value" id="record-birthdate">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Sexo</span>
+          <span class="student-record-value" id="record-gender">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Grupo sanguíneo</span>
+          <span class="student-record-value" id="record-blood">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Cinturón</span>
+          <span class="student-record-value" id="record-belt">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Nacionalidad</span>
+          <span class="student-record-value" id="record-nationality">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Provincia / País</span>
+          <span class="student-record-value" id="record-location">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Dirección</span>
+          <span class="student-record-value" id="record-address">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Colegio</span>
+          <span class="student-record-value" id="record-school">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Padre</span>
+          <span class="student-record-value" id="record-father-name">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Celular padre</span>
+          <span class="student-record-value" id="record-father-phone">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Madre</span>
+          <span class="student-record-value" id="record-mother-name">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Celular madre</span>
+          <span class="student-record-value" id="record-mother-phone">-</span>
+        </div>
+        <div class="student-record-row">
+          <span class="student-record-label">Email contacto</span>
+          <span class="student-record-value" id="record-parent-email">-</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-close-student-record-footer">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="modal-student" class="modal hidden">
   <div class="modal-backdrop"></div>
   <div class="modal-dialog">
@@ -74,7 +155,7 @@
 
         <label class="form-field">
           <span>Fecha de nacimiento</span>
-          <input id="student-birthdate" type="date" required />
+          <input id="student-birthdate" type="text" required />
         </label>
 
         <label class="form-field">
@@ -121,12 +202,17 @@
           <span>Cinturón</span>
           <select id="student-belt" required>
             <option value="">Seleccionar</option>
-            <option value="blanco">Blanco</option>
-            <option value="amarillo">Amarillo</option>
-            <option value="verde">Verde</option>
-            <option value="azul">Azul</option>
-            <option value="rojo">Rojo</option>
-            <option value="negro">Negro</option>
+            <option value="Blanco">Blanco</option>
+            <option value="Blanco Punta Amarilla">Blanco Punta Amarilla</option>
+            <option value="Amarillo">Amarillo</option>
+            <option value="Amarillo Punta Verde">Amarillo Punta Verde</option>
+            <option value="Verde">Verde</option>
+            <option value="Verde Punta Azul">Verde Punta Azul</option>
+            <option value="Azul">Azul</option>
+            <option value="Azul Punta Roja">Azul Punta Roja</option>
+            <option value="Rojo">Rojo</option>
+            <option value="Rojo Punta Negra">Rojo Punta Negra</option>
+            <option value="Negro Primer Dan">Negro Primer Dan</option>
           </select>
         </label>
 
@@ -161,5 +247,24 @@
         <button type="submit" class="btn-martial">Guardar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div id="modal-student-delete" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="section-heading">Eliminar alumno</h3>
+      <button id="btn-close-student-delete" class="btn-icon">✕</button>
+    </div>
+    <div class="martial-form">
+      <p class="text-muted" id="student-delete-message">
+        ¿Seguro que querés eliminar este alumno? Esta acción no se puede deshacer.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancel-student-delete">Cancelar</button>
+        <button type="button" class="btn-martial" id="btn-confirm-student-delete">Eliminar</button>
+      </div>
+    </div>
   </div>
 </div>

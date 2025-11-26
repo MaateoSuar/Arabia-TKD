@@ -12,8 +12,8 @@
   --tkd-blue: #0d47a1;
   --tkd-black: #000000;
   --tkd-white: #ffffff;
-  --bg-dark: #1c1c1c;
-  --bg-panel: #262626;
+  --bg-dark: #5a5a5a; /* gris claro para el fondo general */
+  --bg-panel: #2e2e2e; /* mantiene contraste sobre el fondo */
   --border-strong: 3px solid #000000;
 }
 
@@ -101,9 +101,10 @@ body.app-body {
 }
 
 .app-main {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 14px 10px 80px;
+  flex: 1;
+  padding: 10px 12px 80px;
+  max-width: 1100px;
+  margin: 0 auto 60px;
 }
 
 .app-footer {
@@ -151,9 +152,9 @@ body.app-body {
   background: radial-gradient(circle at top left, rgba(198, 40, 40, 0.16), transparent 55%),
     radial-gradient(circle at bottom right, rgba(13, 71, 161, 0.16), transparent 55%),
     var(--bg-panel);
-  border-radius: 6px;
+  border-radius: 10px;
   box-shadow: 0 0 0 3px #000000;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .panel-brush {
@@ -174,7 +175,7 @@ body.app-body {
 
 .panel-content {
   position: relative;
-  padding: 16px 14px 18px;
+  padding: 18px 18px 20px;
 }
 
 .section-header {
@@ -635,6 +636,34 @@ body.app-body {
   cursor: pointer;
 }
 
+.students-actions-menu {
+  position: absolute;
+  z-index: 35;
+  min-width: 160px;
+  border-radius: 4px;
+  border: 2px solid #000000;
+  background-color: #101010;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
+  padding: 4px 0;
+}
+
+.students-actions-menu-item {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.students-actions-menu-item:hover {
+  background-color: #202020;
+}
+
+.students-actions-menu-item-danger {
+  color: #ef9a9a;
+}
+
 .students-empty-state {
   padding: 8px 10px;
   font-size: 0.75rem;
@@ -651,43 +680,113 @@ body.app-body {
   max-width: 180px;
 }
 
+.student-record-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.student-record-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.student-record-label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #bdbdbd;
+}
+
+.student-record-value {
+  text-align: right;
+}
+
 .belt-pill {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 0.7rem;
-  border: 1px solid #000000;
+  border: none;
+  position: relative;
+  overflow: hidden;
 }
 
-.belt-blanco {
-  background-color: #f5f5f5;
+/* Colores base de cinturón (relleno) */
+.belt-color-blanco {
+  --belt-base-color: #f5f5f5;
+  background-color: var(--belt-base-color);
   color: #000000;
 }
 
-.belt-amarillo {
-  background-color: #fdd835;
+.belt-color-amarillo {
+  --belt-base-color: #fdd835;
+  background-color: var(--belt-base-color);
   color: #000000;
 }
 
-.belt-verde {
-  background-color: #43a047;
+.belt-color-verde {
+  --belt-base-color: #43a047;
+  background-color: var(--belt-base-color);
   color: #ffffff;
 }
 
-.belt-azul {
-  background-color: #0d47a1;
+.belt-color-azul {
+  --belt-base-color: #0d47a1;
+  background-color: var(--belt-base-color);
   color: #ffffff;
 }
 
-.belt-rojo {
-  background-color: #c62828;
+.belt-color-rojo {
+  --belt-base-color: #c62828;
+  background-color: var(--belt-base-color);
   color: #ffffff;
 }
 
-.belt-negro {
-  background-color: #000000;
+.belt-color-negro {
+  --belt-base-color: #000000;
+  background-color: var(--belt-base-color);
   color: #ffffff;
+}
+
+/* Colores de borde (punta) */
+.belt-edge-blanco {
+  --belt-edge-color: #f5f5f5;
+}
+
+.belt-edge-amarillo {
+  --belt-edge-color: #fdd835;
+}
+
+.belt-edge-verde {
+  --belt-edge-color: #43a047;
+}
+
+.belt-edge-azul {
+  --belt-edge-color: #0d47a1;
+}
+
+.belt-edge-rojo {
+  --belt-edge-color: #c62828;
+}
+
+.belt-edge-negro {
+  --belt-edge-color: #000000;
+}
+
+/* Para cinturones con punta: degradado PUNTA-BASE-PUNTA a lo largo de todo el cinturón */
+.belt-pill.belt-has-punta {
+  background-image: linear-gradient(
+    to right,
+    var(--belt-edge-color, var(--belt-base-color, #ffffff)) 0%,
+    var(--belt-edge-color, var(--belt-base-color, #ffffff)) 10%,
+    var(--belt-base-color, #ffffff) 10%,
+    var(--belt-base-color, #ffffff) 90%,
+    var(--belt-edge-color, var(--belt-base-color, #ffffff)) 90%,
+    var(--belt-edge-color, var(--belt-base-color, #ffffff)) 100%
+  );
 }
 
 /* Modal */
@@ -719,7 +818,7 @@ body.app-body {
   max-height: 90vh;
   border-radius: 6px;
   border: var(--border-strong);
-  background: #101010;
+  background: #2b2b2b; /* gris más claro para el fondo del popup */
   box-shadow: 0 0 0 3px #000000;
   padding: 10px 12px 12px;
   overflow: auto;
@@ -762,9 +861,69 @@ body.app-body {
   border-radius: 4px;
   border: 2px solid #000000;
   padding: 6px 8px;
-  background-color: #050505;
+  background-color: #262626; /* gris oscuro pero más claro que antes */
   color: #f5f5f5;
   font-size: 0.75rem;
+}
+
+/* Inputs de fecha con estética Arabia TKD */
+/* Estilo de fondos para inputs de fecha (usados con Flatpickr) */
+.form-field input#exam-date,
+.form-field input#fees-payment-date,
+.form-field input#student-birthdate {
+  background: radial-gradient(circle at top left, rgba(198, 40, 40, 0.16), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(13, 71, 161, 0.16), transparent 55%), #111111;
+}
+
+/* Personalización del calendario Flatpickr para que combine con la app */
+.flatpickr-calendar {
+  background: #070707;
+  border: 1px solid #333;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  color: #f5f5f5;
+}
+
+.flatpickr-calendar .flatpickr-months,
+.flatpickr-calendar .flatpickr-weekdays {
+  background: #0d0d0d;
+  border-bottom: 1px solid #333;
+}
+
+.flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-calendar .flatpickr-current-month input.cur-year {
+  color: #f5f5f5;
+}
+
+.flatpickr-weekday {
+  color: #c0c0c0;
+}
+
+.flatpickr-day {
+  color: #e0e0e0;
+}
+
+.flatpickr-day.today {
+  border-color: rgba(198, 40, 40, 0.9);
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+  background: linear-gradient(135deg, rgba(198, 40, 40, 0.95), rgba(13, 71, 161, 0.95));
+  border-color: rgba(198, 40, 40, 0.9);
+  color: #ffffff;
+}
+
+.flatpickr-day:hover {
+  background: #181818;
+  border-color: rgba(198, 40, 40, 0.8);
+}
+
+.flatpickr-calendar.arrowTop:before,
+.flatpickr-calendar.arrowTop:after,
+.flatpickr-calendar.arrowBottom:before,
+.flatpickr-calendar.arrowBottom:after {
+  border-color: #070707;
 }
 
 .form-field-full {
@@ -862,9 +1021,9 @@ body.app-body {
 /* Exámenes */
 
 .exams-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .exams-list {
@@ -877,7 +1036,7 @@ body.app-body {
 .exams-list-item {
   border-radius: 4px;
   border: 1px solid #222;
-  padding: 6px 8px;
+  padding: 8px 10px;
   margin-bottom: 4px;
   cursor: pointer;
 }
@@ -914,11 +1073,11 @@ body.app-body {
 }
 
 .exam-pdf-box {
-  margin-top: 10px;
+  margin-top: 14px;
   border-radius: 4px;
   border: 1px dashed #333;
   padding: 8px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .exam-pdf-text {
@@ -931,6 +1090,7 @@ body.app-body {
   flex-wrap: wrap;
   gap: 8px;
   align-items: flex-end;
+  margin-top: 8px;
 }
 
 /* Cuotas */
@@ -954,7 +1114,113 @@ body.app-body {
   list-style: none;
   padding: 0;
   margin: 4px 0 0;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* --- Responsive: móvil (iPhone, Moto G) --- */
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: 8px 8px 80px;
+  }
+
+  .panel.martial-panel {
+    padding: 12px 12px 14px;
+  }
+
+  .section-heading {
+    font-size: 1rem;
+  }
+
+  .subheading {
+    font-size: 0.9rem;
+  }
+
+  .martial-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fees-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exam-pdf-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Alumnos: hacer la tabla más legible en pantallas chicas */
+  .table-wrapper {
+    max-height: none;
+    overflow-x: auto;
+  }
+
+  .students-table {
+    font-size: 0.7rem;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 4px 4px;
+  }
+
+  /* Cuotas: evitar superposición de acciones y estado */
+  .fees-form .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .fees-status {
+    margin-top: 10px;
+  }
+
+  .btn-martial,
+  .btn-secondary {
+    font-size: 0.8rem;
+  }
+
+  .calendar-container {
+    margin-top: 10px;
+  }
+
+  .calendar-grid {
+    font-size: 0.65rem;
+  }
+
+  .exam-inline-calendar {
+    width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .exams-layout {
+    flex-direction: column;
+  }
+
+  .exam-pdf-box {
+    margin-top: 10px;
+  }
+}
+
+/* --- Responsive: tablet / desktop mediano --- */
+
+@media (min-width: 768px) {
+  .exams-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .exams-column:first-child {
+    flex: 1.2;
+  }
+
+  .exams-column:last-child {
+    flex: 1;
+  }
+
+  .fees-form .form-grid {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
 }
 
 .student-suggestions {
@@ -1080,3 +1346,5 @@ body.app-body {
     padding-inline: 18px;
   }
 }
+
+/* (se eliminan overrides de modo claro; la app queda fija en modo oscuro) */

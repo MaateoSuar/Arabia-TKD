@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-black text-tkdWhite font-body;
+@layer base {
+  body {
+    @apply font-body;
+  }
+
+  .theme-dark {
+    @apply bg-neutral-600 text-tkdWhite;
+  }
+
+  .theme-light {
+    @apply bg-neutral-50 text-neutral-900;
+  }
 }
 
 .martial-button {
@@ -11,7 +21,7 @@ body {
 }
 
 .martial-section {
-  @apply relative overflow-hidden border-2 border-black bg-gradient-to-br from-neutral-900 via-black to-neutral-950 shadow-martial rounded-martial;
+  @apply relative overflow-hidden border-2 border-black bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900 shadow-martial rounded-martial;
 }
 
 .martial-section::before {

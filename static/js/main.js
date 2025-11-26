@@ -43,6 +43,7 @@ function renderGenericCalendar(targetCalendarEl, selectedDateRef, ymRef, onSelec
   prevBtn.className = 'btn-icon';
   prevBtn.textContent = '<';
   prevBtn.addEventListener('click', () => {
+    console.log('calendar prev month click');
     ymRef.value.month -= 1;
     if (ymRef.value.month < 0) {
       ymRef.value.month = 11;
@@ -60,6 +61,7 @@ function renderGenericCalendar(targetCalendarEl, selectedDateRef, ymRef, onSelec
   nextBtn.className = 'btn-icon';
   nextBtn.textContent = '>';
   nextBtn.addEventListener('click', () => {
+    console.log('calendar next month click');
     ymRef.value.month += 1;
     if (ymRef.value.month > 11) {
       ymRef.value.month = 0;
@@ -89,8 +91,7 @@ function renderGenericCalendar(targetCalendarEl, selectedDateRef, ymRef, onSelec
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const cellDate = new Date(year, month, day);
-    const dateStr = cellDate.toISOString().slice(0, 10);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
       today.getDate(),
@@ -99,16 +100,11 @@ function renderGenericCalendar(targetCalendarEl, selectedDateRef, ymRef, onSelec
     cell.className = 'exam-inline-calendar-cell exam-inline-day';
     cell.textContent = String(day);
 
-    if (dateStr < todayStr) {
-      cell.classList.add('exam-inline-day-disabled');
-    }
-
     if (selectedDateRef.value === dateStr) {
       cell.classList.add('exam-inline-selected');
     }
 
     cell.addEventListener('click', () => {
-      if (dateStr < todayStr) return; // no permitir seleccionar fechas pasadas
       selectedDateRef.value = dateStr;
       onSelect(dateStr);
       renderGenericCalendar(targetCalendarEl, selectedDateRef, ymRef, onSelect);
@@ -130,7 +126,25 @@ async function apiSend(url, method, body) {
     headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error('Error ' + method + ' ' + url);
+  // Manejo especial: en DELETE, si el recurso ya no existe (404),
+  // lo consideramos como caso "ok" para evitar errores molestos en consola.
+  if (!res.ok) {
+    if (method === 'DELETE' && res.status === 404) {
+      return null;
+    }
+
+    let errorMessage = 'Error ' + method + ' ' + url;
+    try {
+      const data = await res.json();
+      if (data && data.error) {
+        errorMessage = data.error;
+      }
+    } catch (e) {
+      // ignoramos errores al parsear el cuerpo de error
+    }
+
+    throw new Error(errorMessage);
+  }
   return res.status === 204 ? null : res.json();
 }
 
@@ -148,6 +162,147 @@ const btnCancelStudent = document.getElementById('btn-cancel-student');
 const studentForm = document.getElementById('student-form');
 const studentIdInput = document.getElementById('student-id');
 const modalStudentTitle = document.getElementById('modal-student-title');
+const studentBirthdateDisplay = document.getElementById('student-birthdate-display');
+const studentBirthdatePopover = document.getElementById('student-birthdate-popover');
+const studentBirthdateCalendarEl = document.getElementById('student-birthdate-calendar');
+
+// Modal legajo de alumno (solo lectura)
+const modalStudentRecord = document.getElementById('modal-student-record');
+const btnCloseStudentRecord = document.getElementById('btn-close-student-record');
+const btnCloseStudentRecordFooter = document.getElementById('btn-close-student-record-footer');
+const recordFullName = document.getElementById('record-full-name');
+const recordDni = document.getElementById('record-dni');
+const recordAge = document.getElementById('record-age');
+const recordBirthdate = document.getElementById('record-birthdate');
+const recordGender = document.getElementById('record-gender');
+const recordBlood = document.getElementById('record-blood');
+const recordBelt = document.getElementById('record-belt');
+const recordNationality = document.getElementById('record-nationality');
+const recordLocation = document.getElementById('record-location');
+const recordAddress = document.getElementById('record-address');
+const recordSchool = document.getElementById('record-school');
+const recordFatherName = document.getElementById('record-father-name');
+const recordFatherPhone = document.getElementById('record-father-phone');
+const recordMotherName = document.getElementById('record-mother-name');
+const recordMotherPhone = document.getElementById('record-mother-phone');
+const recordParentEmail = document.getElementById('record-parent-email');
+
+// Modal de eliminación de alumno
+const modalStudentDelete = document.getElementById('modal-student-delete');
+const btnCloseStudentDelete = document.getElementById('btn-close-student-delete');
+const btnCancelStudentDelete = document.getElementById('btn-cancel-student-delete');
+const btnConfirmStudentDelete = document.getElementById('btn-confirm-student-delete');
+const studentDeleteMessage = document.getElementById('student-delete-message');
+
+// Menú emergente reutilizable para acciones de alumno
+let studentActionsMenu = null;
+let currentStudentForMenu = null;
+let pendingDeleteStudent = null;
+
+function closeStudentActionsMenu() {
+  if (studentActionsMenu) {
+    studentActionsMenu.remove();
+    studentActionsMenu = null;
+  }
+}
+
+function formatBeltLabel(belt) {
+  if (!belt) return '-';
+  return belt.charAt(0).toUpperCase() + belt.slice(1);
+}
+
+function openStudentRecord(student) {
+  const name = student.full_name || `${student.last_name || ''} ${student.first_name || ''}`;
+  if (recordFullName) recordFullName.textContent = name.trim() || '-';
+  if (recordDni) recordDni.textContent = student.dni || '-';
+
+  let ageText = '-';
+  if (student.birthdate) {
+    const age = calcAge(student.birthdate);
+    if (age !== '') ageText = `${age} años`;
+  }
+  if (recordAge) recordAge.textContent = ageText;
+
+  if (recordBirthdate) recordBirthdate.textContent = student.birthdate || '-';
+  if (recordGender) recordGender.textContent = student.gender || '-';
+  if (recordBlood) recordBlood.textContent = student.blood || '-';
+  if (recordBelt) recordBelt.textContent = formatBeltLabel(student.belt || '');
+  if (recordNationality) recordNationality.textContent = student.nationality || '-';
+
+  const locParts = [student.city, student.province, student.country].filter(Boolean);
+  if (recordLocation) recordLocation.textContent = locParts.join(' · ') || '-';
+
+  const addressParts = [student.address, student.zip].filter(Boolean);
+  if (recordAddress) recordAddress.textContent = addressParts.join(' · ') || '-';
+
+  if (recordSchool) recordSchool.textContent = student.school || '-';
+  if (recordFatherName) recordFatherName.textContent = student.father_name || '-';
+  if (recordFatherPhone) recordFatherPhone.textContent = student.father_phone || '-';
+  if (recordMotherName) recordMotherName.textContent = student.mother_name || '-';
+  if (recordMotherPhone) recordMotherPhone.textContent = student.mother_phone || '-';
+  if (recordParentEmail) recordParentEmail.textContent = student.parent_email || '-';
+
+  modalStudentRecord?.classList.remove('hidden');
+}
+
+function openStudentActionsMenu(triggerBtn, student) {
+  closeStudentActionsMenu();
+
+  currentStudentForMenu = student;
+
+  const menu = document.createElement('div');
+  menu.className = 'students-actions-menu';
+
+  const makeItem = (label, onClick, extraClass) => {
+    const item = document.createElement('div');
+    item.className = 'students-actions-menu-item' + (extraClass ? ' ' + extraClass : '');
+    item.textContent = label;
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeStudentActionsMenu();
+      onClick();
+    });
+    return item;
+  };
+
+  menu.appendChild(
+    makeItem('Ver legajo', () => {
+      openStudentRecord(student);
+    }),
+  );
+
+  menu.appendChild(
+    makeItem('Editar alumno', () => {
+      openStudentModal({ ...student, full_name: student.full_name });
+    }),
+  );
+
+  menu.appendChild(
+    makeItem(
+      'Eliminar alumno',
+      () => {
+        pendingDeleteStudent = student;
+        if (studentDeleteMessage) {
+          const name = student.full_name || `${student.last_name || ''} ${student.first_name || ''}`;
+          studentDeleteMessage.textContent =
+            '¿Seguro que querés eliminar al alumno "' + name.trim() + '"? Esta acción no se puede deshacer.';
+        }
+        modalStudentDelete?.classList.remove('hidden');
+      },
+      'students-actions-menu-item-danger',
+    ),
+  );
+
+  document.body.appendChild(menu);
+
+  const rect = triggerBtn.getBoundingClientRect();
+  const top = rect.bottom + window.scrollY + 4;
+  const left = rect.right + window.scrollX - menu.offsetWidth;
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+
+  studentActionsMenu = menu;
+}
 
 function openStudentModal(editData) {
   modalStudent?.classList.remove('hidden');
@@ -157,7 +312,12 @@ function openStudentModal(editData) {
     document.getElementById('student-full-name').value = editData.full_name || '';
     document.getElementById('student-dni').value = editData.dni || '';
     document.getElementById('student-gender').value = editData.gender || '';
-    document.getElementById('student-birthdate').value = editData.birthdate || '';
+    const birthInput = document.getElementById('student-birthdate');
+    const birthDisplay = document.getElementById('student-birthdate-display');
+    if (birthInput) birthInput.value = editData.birthdate || '';
+    if (birthDisplay) {
+      birthDisplay.textContent = formatDateForDisplay(editData.birthdate || '');
+    }
     document.getElementById('student-blood').value = editData.blood || '';
     document.getElementById('student-nationality').value = editData.nationality || '';
     document.getElementById('student-province').value = editData.province || '';
@@ -179,6 +339,11 @@ function openStudentModal(editData) {
     if (document.getElementById('student-belt')) {
       document.getElementById('student-belt').value = '';
     }
+
+    const birthInput = document.getElementById('student-birthdate');
+    const birthDisplay = document.getElementById('student-birthdate-display');
+    if (birthInput) birthInput.value = '';
+    if (birthDisplay) birthDisplay.textContent = 'Seleccionar fecha';
   }
 }
 
@@ -194,6 +359,37 @@ btnOpenCreateStudent?.addEventListener('click', () => openStudentModal());
 btnCloseStudent?.addEventListener('click', closeStudentModal);
 btnCancelStudent?.addEventListener('click', closeStudentModal);
 
+function closeStudentRecordModal() {
+  modalStudentRecord?.classList.add('hidden');
+}
+
+btnCloseStudentRecord?.addEventListener('click', closeStudentRecordModal);
+btnCloseStudentRecordFooter?.addEventListener('click', closeStudentRecordModal);
+
+function closeStudentDeleteModal() {
+  modalStudentDelete?.classList.add('hidden');
+  pendingDeleteStudent = null;
+}
+
+btnCloseStudentDelete?.addEventListener('click', closeStudentDeleteModal);
+btnCancelStudentDelete?.addEventListener('click', closeStudentDeleteModal);
+
+btnConfirmStudentDelete?.addEventListener('click', () => {
+  if (!pendingDeleteStudent) return;
+  apiSend(`/api/students/${pendingDeleteStudent.id}`, 'DELETE')
+    .then(() => {
+      closeStudentDeleteModal();
+      loadStudents();
+    })
+    .catch((err) => {
+      console.error(err);
+      if (err && err.message) {
+        alert(err.message);
+      }
+      closeStudentDeleteModal();
+    });
+});
+
 async function loadStudents() {
   try {
     const list = await apiGet('/api/students');
@@ -207,20 +403,32 @@ async function loadStudents() {
 
     const selectedBelt = studentsBeltFilter ? studentsBeltFilter.value : '';
 
-    const filtered = selectedBelt ? list.filter((s) => (s.belt || '') === selectedBelt) : list;
+    const filtered = selectedBelt
+      ? list.filter((s) => {
+          const beltValue = (s.belt || '').toLowerCase();
+          const filterValue = selectedBelt.toLowerCase();
+          return beltValue.includes(filterValue);
+        })
+      : list;
 
     filtered.forEach((st) => {
       const tr = document.createElement('tr');
       const age = st.birthdate ? calcAge(st.birthdate) : '';
       const belt = st.belt || '';
-      const beltLabel = belt ? belt.charAt(0).toUpperCase() + belt.slice(1) : '';
+      const beltLabel = belt
+        ? belt
+            .split(' ')
+            .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+            .join(' ')
+        : '';
+      const { baseClass, edgeClass, edgeDifferentClass } = getBeltColorClasses(belt);
 
       tr.innerHTML = `
         <td>${st.last_name || ''}</td>
         <td>${st.first_name || ''}</td>
         <td>${age}</td>
         <td>
-          ${belt ? `<span class="belt-pill belt-${belt}">${beltLabel}</span>` : ''}
+          ${belt ? `<span class="belt-pill ${baseClass} ${edgeClass} ${edgeDifferentClass}">${beltLabel}</span>` : ''}
         </td>
         <td>${st.father_name || ''}</td>
         <td>${st.father_phone || ''}</td>
@@ -232,20 +440,7 @@ async function loadStudents() {
       const menuBtn = tr.querySelector('.students-menu-btn');
       menuBtn.addEventListener('click', (event) => {
         event.stopPropagation();
-        const action = window.prompt(
-          'Acción para el alumno:\n1 - Ver legajo (placeholder)\n2 - Editar\n3 - Eliminar',
-          '2'
-        );
-        if (!action) return;
-        if (action === '1') {
-          window.alert('Legajo completo: esta vista se implementará más adelante.');
-        } else if (action === '2') {
-          openStudentModal({ ...st, full_name: st.full_name });
-        } else if (action === '3') {
-          if (window.confirm('¿Seguro que querés eliminar este alumno?')) {
-            apiSend(`/api/students/${st.id}`, 'DELETE').then(loadStudents).catch(console.error);
-          }
-        }
+        openStudentActionsMenu(menuBtn, st);
       });
 
       studentsTbody.appendChild(tr);
@@ -253,6 +448,42 @@ async function loadStudents() {
   } catch (e) {
     console.error(e);
   }
+}
+
+// Cerrar menú de acciones de alumno al hacer click fuera
+document.addEventListener('click', () => {
+  closeStudentActionsMenu();
+});
+
+// Mapeo de colores de cinturón: key = clase CSS, stems = variantes para buscar en el texto
+const BELT_COLOR_DEFS = [
+  { key: 'blanco', stems: ['blanco', 'blanca'] },
+  { key: 'amarillo', stems: ['amarillo', 'amarilla'] },
+  { key: 'verde', stems: ['verde'] },
+  { key: 'azul', stems: ['azul'] },
+  { key: 'rojo', stems: ['rojo', 'roja'] },
+  { key: 'negro', stems: ['negro', 'negra'] },
+];
+
+function getBeltColorClasses(beltRaw) {
+  if (!beltRaw) return { baseClass: '', edgeClass: '', edgeDifferentClass: '' };
+  const value = String(beltRaw).toLowerCase();
+
+  const foundKeys = [];
+  BELT_COLOR_DEFS.forEach((def) => {
+    if (def.stems.some((stem) => value.includes(stem))) {
+      foundKeys.push(def.key);
+    }
+  });
+
+  const baseKey = foundKeys[0] || '';
+  const edgeKey = foundKeys[1] || baseKey || '';
+
+  const baseClass = baseKey ? `belt-color-${baseKey}` : '';
+  const edgeClass = edgeKey ? `belt-edge-${edgeKey}` : '';
+  const edgeDifferentClass = edgeKey && edgeKey !== baseKey ? 'belt-has-punta' : '';
+
+  return { baseClass, edgeClass, edgeDifferentClass };
 }
 
 function formatDniWithDots(value) {
@@ -313,8 +544,54 @@ studentForm?.addEventListener('submit', async (e) => {
   }
 });
 
+// Fecha de nacimiento (Alumnos) usando calendario genérico
+
+studentBirthdateDisplay?.addEventListener('click', () => {
+  if (!studentBirthdatePopover || !studentBirthdateCalendarEl) return;
+  const hidden = document.getElementById('student-birthdate');
+  const currentValue = hidden.value;
+  if (currentValue) {
+    birthSelectedDate = currentValue;
+    const d = new Date(currentValue);
+    if (!Number.isNaN(d.getTime())) {
+      birthCalendarYearMonth = { year: d.getFullYear(), month: d.getMonth() };
+    }
+  }
+
+  renderGenericCalendar(
+    studentBirthdateCalendarEl,
+    { get value() { return birthSelectedDate; }, set value(v) { birthSelectedDate = v; } },
+    { get value() { return birthCalendarYearMonth; }, set value(v) { birthCalendarYearMonth = v; } },
+    (dateStr) => {
+      hidden.value = dateStr;
+      studentBirthdateDisplay.textContent = formatDateForDisplay(dateStr);
+    },
+  );
+
+  studentBirthdatePopover.classList.remove('hidden');
+});
+
+studentBirthdatePopover?.addEventListener('click', (e) => {
+  const target = e.target;
+  if (target.dataset?.picker === 'birthdate-cancel') {
+    studentBirthdatePopover.classList.add('hidden');
+  } else if (target.dataset?.picker === 'birthdate-apply') {
+    const hidden = document.getElementById('student-birthdate');
+    studentBirthdateDisplay.textContent = formatDateForDisplay(hidden.value || birthSelectedDate);
+    studentBirthdatePopover.classList.add('hidden');
+  }
+});
+
 function calcAge(dateStr) {
-  const d = new Date(dateStr);
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return '';
+  const [yStr, mStr, dStr] = parts;
+  const year = Number(yStr);
+  const month = Number(mStr);
+  const day = Number(dStr);
+  if (!year || !month || !day) return '';
+
+  const d = new Date(year, month - 1, day);
   if (Number.isNaN(d.getTime())) return '';
   const today = new Date();
   let age = today.getFullYear() - d.getFullYear();
@@ -518,18 +795,103 @@ const examForm = document.getElementById('exam-form');
 const examsList = document.getElementById('exams-list');
 const examPdfBox = document.getElementById('exam-pdf-box');
 const btnGenerateExamPdf = document.getElementById('btn-generate-exam-pdf');
+const btnGenerateEvalPdf = document.getElementById('btn-generate-eval-pdf');
 const examStudentIdInput = document.getElementById('exam-student-id');
 const examDateDisplay = document.getElementById('exam-date-display');
 const examDatePopover = document.getElementById('exam-date-popover');
 const examDateCalendar = document.getElementById('exam-date-calendar');
 const examTimeDisplay = document.getElementById('exam-time-display');
 const examTimePopover = document.getElementById('exam-time-popover');
+const modalExamDelete = document.getElementById('modal-exam-delete');
+const btnCloseExamDelete = document.getElementById('btn-close-exam-delete');
+const btnCancelExamDelete = document.getElementById('btn-cancel-exam-delete');
+const btnConfirmExamDelete = document.getElementById('btn-confirm-exam-delete');
+const examDeleteMessage = document.getElementById('exam-delete-message');
+const examGraduationSelect = document.getElementById('exam-graduation');
+const examLevelHiddenInput = document.getElementById('exam-level');
+const examBeltInput = document.getElementById('exam-belt');
+const examGupInput = document.getElementById('exam-gup');
+
+// Configuración fija de graduaciones, cinturones y Gups (1 a 11)
+const EXAM_LEVEL_CONFIG = [
+  { graduation: 'Primera', belt: 'Blanco', gup: '10º Gup' },
+  { graduation: 'Segunda', belt: 'Blanco Punta Amarilla', gup: '9º Gup' },
+  { graduation: 'Tercera', belt: 'Amarillo', gup: '8º Gup' },
+  { graduation: 'Cuarta', belt: 'Amarillo Punta Verde', gup: '7º Gup' },
+  { graduation: 'Quinta', belt: 'Verde', gup: '6º Gup' },
+  { graduation: 'Sexta', belt: 'Verde Punta Azul', gup: '5º Gup' },
+  { graduation: 'Séptima', belt: 'Azul', gup: '4º Gup' },
+  { graduation: 'Octava', belt: 'Azul Punta Roja', gup: '3º Gup' },
+  { graduation: 'Novena', belt: 'Rojo', gup: '2º Gup' },
+  { graduation: 'Décima', belt: 'Rojo Punta Negra', gup: '1º Gup' },
+  { graduation: 'Negro Primer Dan', belt: 'Negro Primer Dan', gup: 'Negro Primer Dan' },
+];
+
+function initExamGraduationFields() {
+  if (!examGraduationSelect || !examLevelHiddenInput || !examBeltInput || !examGupInput) return;
+
+  // Poblar opciones si están vacías
+  if (!examGraduationSelect.options.length) {
+    EXAM_LEVEL_CONFIG.forEach((cfg, index) => {
+      const opt = document.createElement('option');
+      opt.value = String(index);
+      opt.textContent = `${index + 1}. ${cfg.graduation}`;
+      examGraduationSelect.appendChild(opt);
+    });
+  }
+
+  const applyConfigByIndex = (idx) => {
+    const cfg = EXAM_LEVEL_CONFIG[idx];
+    if (!cfg) return;
+    examBeltInput.value = cfg.belt;
+    examGupInput.value = cfg.gup;
+    examLevelHiddenInput.value = `${cfg.graduation} - ${cfg.belt} - ${cfg.gup}`;
+  };
+
+  // Valor por defecto: primera graduación
+  if (examGraduationSelect.selectedIndex < 0) {
+    examGraduationSelect.selectedIndex = 0;
+  }
+  applyConfigByIndex(examGraduationSelect.selectedIndex);
+
+  examGraduationSelect.addEventListener('change', () => {
+    const idx = Number(examGraduationSelect.value) || examGraduationSelect.selectedIndex || 0;
+    applyConfigByIndex(idx);
+  });
+}
+
+initExamGraduationFields();
 
 let examSelectedDate = '';
 let examCalendarYearMonth = (() => {
   const d = new Date();
   return { year: d.getFullYear(), month: d.getMonth() };
 })();
+
+let pendingDeleteExamId = null;
+
+function closeExamDeleteModal() {
+  modalExamDelete?.classList.add('hidden');
+  pendingDeleteExamId = null;
+}
+
+btnCloseExamDelete?.addEventListener('click', closeExamDeleteModal);
+btnCancelExamDelete?.addEventListener('click', closeExamDeleteModal);
+
+btnConfirmExamDelete?.addEventListener('click', async () => {
+  if (!pendingDeleteExamId) {
+    closeExamDeleteModal();
+    return;
+  }
+  try {
+    await apiSend(`/api/events/${pendingDeleteExamId}`, 'DELETE');
+    closeExamDeleteModal();
+    loadEvents();
+  } catch (err) {
+    console.error(err);
+    closeExamDeleteModal();
+  }
+});
 
 // Estado separado para Fecha de pago (Cuotas)
 let feesSelectedDate = '';
@@ -538,11 +900,27 @@ let feesCalendarYearMonth = (() => {
   return { year: d.getFullYear(), month: d.getMonth() };
 })();
 
+// Estado para Fecha de nacimiento (Alumnos)
+let birthSelectedDate = '';
+let birthCalendarYearMonth = (() => {
+  const d = new Date();
+  return { year: d.getFullYear(), month: d.getMonth() };
+})();
+
 function formatDateForDisplay(value) {
   if (!value) return 'Seleccionar fecha';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return 'Seleccionar fecha';
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const parts = String(value).split('-');
+  if (parts.length !== 3) return 'Seleccionar fecha';
+
+  const [yStr, mStr, dStr] = parts;
+  if (!yStr || !mStr || !dStr) return 'Seleccionar fecha';
+
+  const dd = dStr.padStart(2, '0');
+  const mm = mStr.padStart(2, '0');
+  const yyyy = yStr;
+
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function formatTimeForDisplay(value) {
@@ -683,17 +1061,42 @@ function renderExamsFromEvents() {
   exams.forEach((ev) => {
     const li = document.createElement('li');
     li.className = 'exams-list-item';
-    li.innerHTML = `
-      <div class="exam-item-inner">
-        <span class="exam-checkbox"></span>
-        <span>${ev.date || ''} ${ev.time || ''} - ${ev.level || ''} - ${ev.place || ''}</span>
-      </div>
-    `;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'exam-item-inner';
+
+    const left = document.createElement('div');
+    left.className = 'exam-item-main';
+    const checkbox = document.createElement('span');
+    checkbox.className = 'exam-checkbox';
+    const label = document.createElement('span');
+    label.textContent = `${ev.date || ''} ${ev.time || ''} - ${ev.level || ''} - ${ev.place || ''}`;
+    left.appendChild(checkbox);
+    left.appendChild(label);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = 'Eliminar';
+    delBtn.className = 'btn-secondary exam-delete-btn';
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      pendingDeleteExamId = ev.id;
+      if (examDeleteMessage) {
+        examDeleteMessage.textContent = `¿Seguro que querés eliminar el examen del ${ev.date || ''} ${ev.time || ''} en ${ev.place || ''}? Esta acción no se puede deshacer.`;
+      }
+      modalExamDelete?.classList.remove('hidden');
+    });
+
+    wrapper.appendChild(left);
+    wrapper.appendChild(delBtn);
+
+    li.appendChild(wrapper);
     li.addEventListener('click', () => selectExam(ev.id, li));
     examsList.appendChild(li);
   });
 }
 
+// ... (rest of the code remains the same)
 function selectExam(eventId, liElement) {
   if (!examPdfBox || !btnGenerateExamPdf) return;
   examPdfBox.setAttribute('data-event-id', String(eventId));
@@ -703,8 +1106,8 @@ function selectExam(eventId, liElement) {
   if (liElement) {
     liElement.classList.add('exams-list-item-selected');
   }
-
   btnGenerateExamPdf.disabled = false;
+  if (btnGenerateEvalPdf) btnGenerateEvalPdf.disabled = false;
 }
 
 btnGenerateExamPdf?.addEventListener('click', () => {
@@ -745,6 +1148,43 @@ btnGenerateExamPdf?.addEventListener('click', () => {
     .catch((err) => console.error(err));
 });
 
+btnGenerateEvalPdf?.addEventListener('click', () => {
+  if (!examPdfBox) return;
+  const eventId = examPdfBox.getAttribute('data-event-id');
+  const studentIdValue = examStudentIdInput?.value || '';
+  if (!eventId) {
+    alert('Primero seleccioná un examen de la lista.');
+    return;
+  }
+  if (!studentIdValue) {
+    alert('Seleccioná un Alumno para generar el PDF.');
+    return;
+  }
+
+  const url = `/api/exams/${eventId}/evaluation-pdf`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ student_id: Number(studentIdValue) }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error('No se pudo generar el PDF (código ' + res.status + ').');
+      }
+      return res.blob();
+    })
+    .then((blob) => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'evaluacion_examen.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    })
+    .catch((err) => console.error(err));
+});
+
 // --- Cuotas ---
 
 const feesForm = document.getElementById('fees-form');
@@ -759,10 +1199,19 @@ const feesDateCalendarEl = document.getElementById('fees-date-calendar');
 
 const examStudentNameInput = document.getElementById('exam-student-name');
 
-function setupStudentNameAutocomplete(inputEl, hiddenEl, suggestionsEl) {
+function setupStudentNameAutocomplete(inputEl, hiddenEl, suggestionsEl, onSelect) {
   if (!inputEl || !hiddenEl || !suggestionsEl) return;
 
   inputEl.addEventListener('input', () => {
+    // Cada vez que cambia el texto, asumimos que todavía no hay alumno seleccionado
+    // y limpiamos el ID oculto para evitar reutilizar el del alumno anterior.
+    hiddenEl.value = '';
+
+    // Si estamos mostrando algún estado asociado (por ejemplo, cuotas), lo limpiamos
+    if (feesStatusBody && (inputEl === feesStudentNameInput)) {
+      feesStatusBody.innerHTML = '';
+    }
+
     const query = inputEl.value.toLowerCase().trim();
     suggestionsEl.innerHTML = '';
     if (!query || !studentsCache.length) return;
@@ -778,6 +1227,9 @@ function setupStudentNameAutocomplete(inputEl, hiddenEl, suggestionsEl) {
         inputEl.value = label;
         hiddenEl.value = s.id;
         suggestionsEl.innerHTML = '';
+        if (typeof onSelect === 'function') {
+          onSelect(s);
+        }
       });
       suggestionsEl.appendChild(div);
     });
@@ -822,7 +1274,28 @@ async function loadFeesForStudent(studentId) {
     historyList.className = 'fees-history-list';
     (data.history || []).forEach((h) => {
       const li = document.createElement('li');
-      li.textContent = `${h.date} - $${h.amount}`;
+      const text = document.createElement('span');
+      text.textContent = `${h.date} - $${h.amount}`;
+
+      if (h.id != null) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = 'Eliminar';
+        delBtn.style.marginLeft = '8px';
+        delBtn.className = 'btn-secondary';
+        delBtn.addEventListener('click', async () => {
+          try {
+            await apiSend(`/api/fees/payment/${h.id}`, 'DELETE');
+            loadFeesForStudent(studentId);
+          } catch (err) {
+            console.error(err);
+          }
+        });
+        li.appendChild(text);
+        li.appendChild(delBtn);
+      } else {
+        li.appendChild(text);
+      }
       historyList.appendChild(li);
     });
 
@@ -842,8 +1315,11 @@ btnLoadFees?.addEventListener('click', () => {
   loadFeesForStudent(Number(id));
 });
 
+let feesSubmitting = false;
+
 feesForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (feesSubmitting) return; // evitar múltiples envíos rápidos
   const id = feesStudentIdInput?.value;
   if (!id) return;
 
@@ -852,11 +1328,24 @@ feesForm?.addEventListener('submit', async (e) => {
     amount: Number(document.getElementById('fees-amount').value || 0),
   };
 
+  const submitBtn = feesForm.querySelector('button[type="submit"]');
+
   try {
+    feesSubmitting = true;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Registrando...';
+    }
     await apiSend(`/api/fees/${id}`, 'POST', payload);
     loadFeesForStudent(Number(id));
   } catch (err) {
     console.error(err);
+  } finally {
+    feesSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Registrar pago';
+    }
   }
 });
 
@@ -902,5 +1391,72 @@ loadStudents();
 loadEvents();
 
 // Inicializar autocompletados una vez que haya alumnos
-setupStudentNameAutocomplete(feesStudentNameInput, feesStudentIdInput, feesStudentSuggestions);
-setupStudentNameAutocomplete(examStudentNameInput, examStudentIdInput, document.getElementById('exam-student-suggestions'));
+setupStudentNameAutocomplete(
+  feesStudentNameInput,
+  feesStudentIdInput,
+  feesStudentSuggestions,
+  (student) => {
+    if (student && student.id != null) {
+      loadFeesForStudent(student.id);
+    }
+  },
+);
+
+setupStudentNameAutocomplete(
+  examStudentNameInput,
+  examStudentIdInput,
+  document.getElementById('exam-student-suggestions'),
+);
+
+// Establecer fecha de hoy por defecto en los inputs de fecha nativos si están vacíos
+(function setDefaultDatesToToday() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  const examDateInput = document.getElementById('exam-date');
+  if (examDateInput && !examDateInput.value) {
+    examDateInput.value = todayStr;
+  }
+
+  const feesPaymentDateInput = document.getElementById('fees-payment-date');
+  if (feesPaymentDateInput && !feesPaymentDateInput.value) {
+    feesPaymentDateInput.value = todayStr;
+  }
+
+  // Fecha de nacimiento: la dejamos vacía por defecto, para que siempre se elija explícitamente
+})();
+
+// Inicializar Flatpickr como datepicker oscuro si está disponible
+(function initFlatpickrDatepickers() {
+  if (typeof flatpickr === 'undefined') return;
+
+  flatpickr('#exam-date', {
+    dateFormat: 'Y-m-d',
+    defaultDate: document.getElementById('exam-date')?.value || undefined,
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
+  });
+
+  flatpickr('#fees-payment-date', {
+    dateFormat: 'Y-m-d',
+    defaultDate: document.getElementById('fees-payment-date')?.value || undefined,
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
+  });
+
+  flatpickr('#student-birthdate', {
+    dateFormat: 'Y-m-d',
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
+    // No defaultDate para obligar a elegir nacimiento
+  });
+})();
