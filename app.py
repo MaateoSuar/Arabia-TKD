@@ -592,7 +592,7 @@ def generate_exam_evaluation_pdf(event_id: int):
     p.drawString(x1 + 360, y, 'Tiempo de práctica:')
     y -= 18
 
-    draw_label_value('Nombre de la escuela:', 'ESCUELA DE TAEKWON-DO ARABIA TKD', x1, x2)
+    draw_label_value('Escuela base:', 'INSTITUTO MONTEROS DE TAEKWONDO', x1, x2)
     y -= 28
 
     # Instructores
