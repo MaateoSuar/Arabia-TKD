@@ -847,7 +847,11 @@ def generate_exam_rinde_pdf(event_id: int):
     for student in students:
         # Datos del alumno
         if student.last_name or student.first_name:
-            full_name = f"{student.last_name or ''} {student.first_name or ''}".strip()
+            # Formato "Apellido, Nombre" cuando hay ambos
+            if student.last_name and student.first_name:
+                full_name = f"{student.last_name}, {student.first_name}"
+            else:
+                full_name = (student.last_name or student.first_name) or ''
         else:
             full_name = student.full_name or ''
         dni = student.dni or ''
@@ -858,7 +862,7 @@ def generate_exam_rinde_pdf(event_id: int):
         gup_current = current_info["gup"] if current_info else ''
         gup_next = next_info["gup"] if next_info else ''
 
-        # Fecha de nacimiento y edad
+        # Fecha de nacimiento y edad (en años y meses)
         birth_str = ''
         age_str = ''
         if student.birthdate:
@@ -867,10 +871,26 @@ def generate_exam_rinde_pdf(event_id: int):
                 exam_date = datetime.strptime(event.date, '%Y-%m-%d').date() if event.date else date.today()
             except ValueError:
                 exam_date = date.today()
-            age = exam_date.year - student.birthdate.year - (
-                (exam_date.month, exam_date.day) < (student.birthdate.month, student.birthdate.day)
-            )
-            age_str = str(age)
+
+            years = exam_date.year - student.birthdate.year
+            months = exam_date.month - student.birthdate.month
+            days = exam_date.day - student.birthdate.day
+
+            # Ajuste por días: si los días son negativos, restamos un mes
+            if days < 0:
+                months -= 1
+
+            # Ajuste por meses negativos
+            if months < 0:
+                years -= 1
+                months += 12
+
+            if years < 0:
+                years = 0
+            if months < 0:
+                months = 0
+
+            age_str = f"{years} años y {months} meses"
 
         # Fecha de examen en formato DD/MM/AAAA si es posible
         fecha_examen = ''
