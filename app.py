@@ -1,13 +1,18 @@
 from flask import Flask, jsonify, request, render_template, send_file
 from io import BytesIO
-from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
+from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2._page import PageObject
+from PyPDF2.generic import NameObject, BooleanObject
 from datetime import datetime, date
+from copy import deepcopy
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 import os
 
+# ...
 app = Flask(__name__)
 
 
@@ -31,7 +36,18 @@ with app.app_context():
         from sqlalchemy import text
 
         with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE students ADD COLUMN notes TEXT"))
+            # Intentar agregar columna notes si no existe
+            try:
+                conn.execute(text("ALTER TABLE students ADD COLUMN notes TEXT"))
+            except Exception:
+                pass
+
+            # Intentar agregar columna status si no existe
+            try:
+                conn.execute(text("ALTER TABLE students ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'"))
+            except Exception:
+                pass
+
             conn.commit()
     except Exception:
         # Si falla (por ejemplo en SQLite viejo), se ignora y se asume que la tabla se recreará en limpio.
@@ -63,6 +79,7 @@ class Student(db.Model):
     mother_phone = db.Column(db.String(40))
     parent_email = db.Column(db.String(120))
     notes = db.Column(db.Text)
+    status = db.Column(db.String(20), nullable=False, default="active")
 
 
 class Event(db.Model):
@@ -76,6 +93,14 @@ class Event(db.Model):
     level = db.Column(db.String(80))
     place = db.Column(db.String(160))
     notes = db.Column(db.Text)
+
+
+class ExamInscription(db.Model):
+    __tablename__ = "exam_inscriptions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
 
 
 class FeePayment(db.Model):
@@ -127,6 +152,7 @@ def api_students():
                 'mother_phone': s.mother_phone,
                 'parent_email': s.parent_email,
                 'notes': s.notes,
+                'status': s.status,
             })
         return jsonify(result)
 
@@ -161,6 +187,7 @@ def api_students():
         mother_phone=data.get('mother_phone'),
         parent_email=data.get('parent_email'),
         notes=data.get('notes'),
+        status=data.get('status') or 'active',
     )
     db.session.add(student)
     db.session.commit()
@@ -198,6 +225,7 @@ def api_student_detail(student_id: int):
             'mother_phone': student.mother_phone,
             'parent_email': student.parent_email,
             'notes': student.notes,
+            'status': student.status,
         })
 
     if request.method == 'PUT':
@@ -206,7 +234,7 @@ def api_student_detail(student_id: int):
             'full_name', 'last_name', 'first_name', 'dni', 'gender', 'blood',
             'nationality', 'province', 'country', 'city', 'address', 'zip',
             'school', 'belt', 'father_name', 'mother_name', 'father_phone',
-            'mother_phone', 'parent_email', 'notes',
+            'mother_phone', 'parent_email', 'notes', 'status',
         ]:
             if field in data:
                 setattr(student, field, data[field])
@@ -287,6 +315,66 @@ def api_event_detail(event_id: int):
     db.session.delete(event)
     db.session.commit()
     return '', 204
+
+
+@app.route('/api/exams/<int:event_id>/students', methods=['GET', 'PUT'])
+def api_exam_students(event_id: int):
+    """Gestiona la lista de alumnos inscriptos a un examen.
+
+    GET: devuelve la lista de alumnos inscriptos (mismo formato básico que /api/students, pero filtrado).
+    PUT: reemplaza la lista de inscriptos con los IDs enviados en JSON: { "student_ids": [1,2,3] }.
+    """
+
+    event = Event.query.get(event_id)
+    if not event or event.type != 'exam':
+        return jsonify({'error': 'Examen no encontrado'}), 404
+
+    if request.method == 'GET':
+        inscriptions = ExamInscription.query.filter_by(event_id=event_id).all()
+        student_ids = [ins.student_id for ins in inscriptions]
+
+        if not student_ids:
+            return jsonify([])
+
+        students = Student.query.filter(Student.id.in_(student_ids)).all()
+        result = []
+        for s in students:
+            result.append({
+                'id': s.id,
+                'full_name': s.full_name,
+                'last_name': s.last_name,
+                'first_name': s.first_name,
+                'belt': s.belt,
+                'status': s.status,
+            })
+        return jsonify(result)
+
+    # PUT
+    data = request.json or {}
+    ids = data.get('student_ids') or []
+
+    # Normalizar a enteros, ignorando valores no válidos
+    normalized_ids = []
+    for raw_id in ids:
+        try:
+            normalized_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+
+    # Borrar inscripciones anteriores de ese examen
+    ExamInscription.query.filter_by(event_id=event_id).delete()
+
+    # Insertar nuevas
+    for sid in normalized_ids:
+        db.session.add(ExamInscription(event_id=event_id, student_id=sid))
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'No se pudieron guardar las inscripciones'}), 400
+
+    return jsonify({'event_id': event_id, 'student_ids': normalized_ids})
 
 
 # --- Fees ---
@@ -662,18 +750,11 @@ def generate_exam_evaluation_pdf(event_id: int):
         try:
             logo = ImageReader(logo_arabia_path)
             # Esquina superior derecha dentro del marco
-            logo_size = 60
-            p.drawImage(
-                logo,
-                width - margin - logo_size,
-                height - margin - logo_size,
-                width=logo_size,
-                height=logo_size,
-                mask='auto',
-            )
+            logo_width = 80
+            logo_height = 80
+            p.drawImage(logo, width - margin - logo_width, height - margin - logo_height, width=logo_width, height=logo_height, mask='auto')
         except Exception:
             pass
-
     logo_monteros_path = os.path.join(app.static_folder, 'img', 'logo_monteros.png')
     if os.path.exists(logo_monteros_path):
         try:
@@ -688,6 +769,295 @@ def generate_exam_evaluation_pdf(event_id: int):
     buffer.seek(0)
     filename = f"evaluacion_examen_{event_id}.pdf"
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+
+@app.route('/api/exams/<int:event_id>/rinde-pdf', methods=['POST'])
+def generate_exam_rinde_pdf(event_id: int):
+    """Genera un PDF de rendida multi-hoja usando el PDF base de Taekwondo.
+
+    Cada alumno va en una página distinta, partiendo de la primera página del
+    archivo 'src/PDF TAEKWONDO segunda edicion.pdf'.
+    """
+
+    event = Event.query.get(event_id)
+    if not event or event.type != 'exam':
+        return jsonify({'error': 'Examen no encontrado'}), 404
+
+    data = request.json or {}
+    raw_ids = data.get('student_ids') or []
+
+    # Normalizar a enteros válidos
+    student_ids = []
+    for raw in raw_ids:
+        try:
+            student_ids.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+
+    if not student_ids:
+        return jsonify({'error': 'No se recibieron alumnos para el examen'}), 400
+
+    students = Student.query.filter(Student.id.in_(student_ids)).all()
+    if not students:
+        return jsonify({'error': 'Alumnos no encontrados'}), 404
+
+    # Progresión de cinturones, Gup y Graduación (igual que en el frontend)
+    belt_progress = [
+        {"belt": "Blanco", "gup": "10º Gup", "graduation": "Primera"},
+        {"belt": "Blanco Punta Amarilla", "gup": "9º Gup", "graduation": "Segunda"},
+        {"belt": "Amarillo", "gup": "8º Gup", "graduation": "Tercera"},
+        {"belt": "Amarillo Punta Verde", "gup": "7º Gup", "graduation": "Cuarta"},
+        {"belt": "Verde", "gup": "6º Gup", "graduation": "Quinta"},
+        {"belt": "Verde Punta Azul", "gup": "5º Gup", "graduation": "Sexta"},
+        {"belt": "Azul", "gup": "4º Gup", "graduation": "Séptima"},
+        {"belt": "Azul Punta Roja", "gup": "3º Gup", "graduation": "Octava"},
+        {"belt": "Rojo", "gup": "2º Gup", "graduation": "Novena"},
+        {"belt": "Rojo Punta Negra", "gup": "1º Gup", "graduation": "Décima"},
+        {"belt": "Negro Primer Dan", "gup": "", "graduation": "Primer Dan"},
+        {"belt": "Segundo Dan", "gup": "", "graduation": "Segundo Dan"},
+    ]
+
+    def get_belt_infos(current_belt: str):
+        """Devuelve (info_actual, info_siguiente) según la progresión de cinturones."""
+        if not current_belt:
+            return None, None
+        current = current_belt.strip().lower()
+        idx = next((i for i, b in enumerate(belt_progress) if b["belt"].lower() == current), -1)
+        if idx == -1:
+            return None, None
+        current_info = belt_progress[idx]
+        next_info = belt_progress[idx + 1] if idx < len(belt_progress) - 1 else None
+        return current_info, next_info
+
+    # Cargar PDF base
+    template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+    if not os.path.exists(template_path):
+        return jsonify({'error': 'PDF base no encontrado en src'}), 500
+
+    reader = PdfReader(template_path)
+    if not reader.pages:
+        return jsonify({'error': 'PDF base sin páginas'}), 500
+
+    template_page = reader.pages[0]
+    page_width = float(template_page.mediabox.width)
+    page_height = float(template_page.mediabox.height)
+
+    writer = PdfWriter()
+
+    for student in students:
+        # Datos del alumno
+        if student.last_name or student.first_name:
+            full_name = f"{student.last_name or ''} {student.first_name or ''}".strip()
+        else:
+            full_name = student.full_name or ''
+        dni = student.dni or ''
+        gender = (student.gender or '').upper()
+        belt_current = (student.belt or '').strip()
+        current_info, next_info = get_belt_infos(belt_current)
+        belt_next = next_info["belt"] if next_info else ''
+        gup_current = current_info["gup"] if current_info else ''
+        gup_next = next_info["gup"] if next_info else ''
+
+        # Fecha de nacimiento y edad
+        birth_str = ''
+        age_str = ''
+        if student.birthdate:
+            birth_str = student.birthdate.strftime('%d/%m/%Y')
+            try:
+                exam_date = datetime.strptime(event.date, '%Y-%m-%d').date() if event.date else date.today()
+            except ValueError:
+                exam_date = date.today()
+            age = exam_date.year - student.birthdate.year - (
+                (exam_date.month, exam_date.day) < (student.birthdate.month, student.birthdate.day)
+            )
+            age_str = str(age)
+
+        # Fecha de examen en formato DD/MM/AAAA si es posible
+        fecha_examen = ''
+        if event.date:
+            try:
+                _exam_dt = datetime.strptime(event.date, '%Y-%m-%d').date()
+                fecha_examen = _exam_dt.strftime('%d/%m/%Y')
+            except ValueError:
+                fecha_examen = event.date
+
+        # Coordinadas base (similares a las del PDF de debug)
+        # x_left ligeramente más a la derecha para ajustar el nombre
+        x_left = page_width * 0.265
+        # Columna derecha superior (Fecha/DNI/Edad) más a la derecha
+        x_right_top = page_width * 0.78
+        # Columna derecha media en una posición fija razonable
+        x_right_mid = page_width * 0.52
+
+        # y_start_left un poco más arriba para terminar de ajustar la altura del nombre
+        y_start_left = page_height - 146
+        # Columna derecha superior aún más arriba para la Fecha de examen
+        y_start_right_top = page_height - 160
+        # Columna derecha media más arriba
+        y_start_right_mid = page_height - 200
+        step = 14
+
+        # Crear overlay con ReportLab
+        overlay_buf = BytesIO()
+        c = canvas.Canvas(overlay_buf, pagesize=(page_width, page_height))
+        c.setFont('Helvetica', 9)
+
+        # Columna izquierda (Nombre, Sexo, Cinturón actual, GUP actual)
+        y = y_start_left
+        c.drawString(x_left, y, full_name or '')         # Apellido y Nombre
+        y -= step
+        # Sexo un poquito más a la izquierda y apenas más arriba
+        c.drawString(x_left - 65, y - 1, gender or '')   # Sexo
+        y -= step
+        # Cinturón actual un poquito más a la izquierda y un poquito más abajo
+        c.drawString(x_left - 14, y - 1, belt_current or '')  # Cinturón actual
+        y -= step
+        # GUP actual un poquito más a la izquierda y un poquito más abajo
+        c.drawString(x_left - 34, y - 2, gup_current or '')  # GUP actual
+
+        # Columna derecha superior (Fecha examen, DNI, Edad)
+        y_rt = y_start_right_top
+        # Fecha de examen un poquito más arriba y un poco más a la izquierda
+        c.drawString(x_right_top - 15, y_rt + 44, fecha_examen or '')  # Fecha examen
+        y_rt -= step
+        # DNI alineado en X con la Fecha de examen, apenas más arriba y un poco más a la izquierda
+        c.drawString(x_right_top - 17, y_rt + 27, dni or '')           # DNI
+        y_rt -= step
+        # Edad alineada en X con DNI, un poquito más abajo y un poquito más a la izquierda
+        c.drawString(x_right_top - 18, y_rt + 27, age_str or '')       # Edad
+
+        # Columna derecha media (Fecha nacimiento, Cinturón que rinde, GUP que rinde)
+        y_rm = y_start_right_mid
+        # Subimos Fecha de nacimiento para que esté a la altura aproximada de Sexo
+        # y la movemos muy ligeramente más hacia la izquierda (ajuste muy fino)
+        c.drawString(x_right_mid + 31, y_rm + 39, birth_str or '')     # Fecha nacimiento
+        y_rm -= step
+        # Cinturón que rinde (Solicita cinturón) bastante más a la izquierda dentro de la columna
+        c.drawString(x_right_mid + 10, y_rm + 38, belt_next or '')     # Cinturón que rinde
+        y_rm -= step
+        # GUP que rinde (Solicita GUP) medio punto más arriba y un poquito a la izquierda
+        c.drawString(x_right_mid - 5, y_rm + 38, gup_next or '') # GUP que rinde
+
+        c.showPage()
+        c.save()
+
+        overlay_buf.seek(0)
+        overlay_reader = PdfReader(overlay_buf)
+        overlay_page = overlay_reader.pages[0]
+
+        merged_page = PageObject.create_blank_page(
+            width=template_page.mediabox.width,
+            height=template_page.mediabox.height,
+        )
+        merged_page.merge_page(template_page)
+        merged_page.merge_page(overlay_page)
+        writer.add_page(merged_page)
+
+    out_buffer = BytesIO()
+    writer.write(out_buffer)
+    out_buffer.seek(0)
+
+    filename = f"rinde_examen_{event_id}.pdf"
+    return send_file(out_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
+
+@app.route('/api/exams/template-debug-pdf', methods=['GET'])
+def exam_template_debug_pdf():
+  """Genera un PDF de calibración con marcadores L1..L12 y R1..R12 sobre la plantilla base.
+
+  Usar este PDF para identificar qué marcador coincide con cada línea amarilla
+  del formulario y así ajustar con precisión las coordenadas.
+  """
+
+  template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+  if not os.path.exists(template_path):
+      return jsonify({'error': 'PDF base no encontrado en src'}), 500
+
+  reader = PdfReader(template_path)
+  if not reader.pages:
+      return jsonify({'error': 'PDF base sin páginas'}), 500
+  template_page = reader.pages[0]
+
+  writer = PdfWriter()
+
+  # Usamos el tamaño real de la página de la plantilla para que overlay y base coincidan 1:1
+  overlay_width = float(template_page.mediabox.width)
+  overlay_height = float(template_page.mediabox.height)
+  x_left = overlay_width * 0.30
+  x_right_top = overlay_width * 0.72
+  x_right_mid = overlay_width * 0.63
+
+  buf_overlay = BytesIO()
+  c = canvas.Canvas(buf_overlay, pagesize=(overlay_width, overlay_height))
+  c.setFont('Helvetica', 8)
+
+  # Marcadores L1..L12 en la columna izquierda.
+  # Subimos el bloque para que L1 quede a la altura de "Apellido y Nombre".
+  y_start_left = overlay_height - 180
+  step = 14
+  for i in range(12):
+      y = y_start_left - i * step
+      c.drawString(x_left, y, f'L{i + 1}')
+
+  # Marcadores R1..R12 en la columna derecha superior (Fecha/DNI/Edad)
+  y_start_right_top = overlay_height - 220
+  for i in range(12):
+      y = y_start_right_top - i * step
+      c.drawString(x_right_top, y, f'RT{i + 1}')
+
+  # Marcadores RM1..RM12 en la columna derecha media (Fecha Nac / Solicita cinturón / Solicita GUP)
+  y_start_right_mid = overlay_height - 260
+  for i in range(12):
+      y = y_start_right_mid - i * step
+      c.drawString(x_right_mid, y, f'RM{i + 1}')
+
+  c.save()
+  buf_overlay.seek(0)
+
+  overlay_reader = PdfReader(buf_overlay)
+  overlay_page = overlay_reader.pages[0]
+
+  merged_page = PageObject.create_blank_page(
+      width=template_page.mediabox.width,
+      height=template_page.mediabox.height,
+  )
+  merged_page.merge_page(template_page)
+  merged_page.merge_page(overlay_page)
+  writer.add_page(merged_page)
+
+  out_buffer = BytesIO()
+  writer.write(out_buffer)
+  out_buffer.seek(0)
+
+  return send_file(out_buffer, as_attachment=True, download_name='debug_examen_template.pdf', mimetype='application/pdf')
+
+
+@app.route('/api/exams/template-fields', methods=['GET'])
+def exam_template_fields():
+    """Devuelve los campos de formulario (AcroForm) del PDF base.
+
+    Útil para ver exactamente cómo se llaman los campos de texto que creaste
+    en la plantilla editable y poder mapearlos desde el backend.
+    """
+
+    template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+    if not os.path.exists(template_path):
+        return jsonify({'error': 'PDF base no encontrado en src'}), 500
+
+    reader = PdfReader(template_path)
+    if not reader.pages:
+        return jsonify({'error': 'PDF base sin páginas'}), 500
+
+    fields = reader.get_fields() or {}
+    # Convertimos los objetos de PyPDF2 a strings simples
+    simple = {}
+    for name, data in fields.items():
+        simple[str(name)] = {
+            'name': str(name),
+            'type': str(data.get('/FT')) if isinstance(data, dict) else None,
+        }
+
+    return jsonify(simple)
 
 if __name__ == '__main__':
     with app.app_context():

@@ -273,6 +273,53 @@ body.app-body {
   box-shadow: 0 0 0 1px #000000;
 }
 
+.student-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  border: 1px solid #444;
+  background-color: #e5e5e5;
+  color: #000;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease,
+    transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.student-status-active {
+  background: linear-gradient(135deg, #22c55e, #15803d); /* verde */
+  border-color: #15803d;
+  color: #f9fafb;
+}
+
+.student-status-inactive {
+  background: linear-gradient(135deg, #f97373, #b91c1c); /* rojo */
+  border-color: #7f1d1d;
+  color: #fef2f2;
+}
+
+.student-status-pill:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.student-status-pill:focus-visible {
+  outline: 2px solid #facc15;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.65);
+}
+
+.student-status-pill:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  filter: brightness(0.95);
+}
+
 /* Hoja principal */
 
 .home-hero-layout {
@@ -672,12 +719,14 @@ body.app-body {
 
 .students-toolbar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
 .students-filter-field {
-  max-width: 180px;
+  min-width: 180px;
+  margin-right: 0.75rem;
 }
 
 .student-record-grid {
@@ -687,9 +736,10 @@ body.app-body {
 }
 
 .student-record-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 0.48fr 0.52fr; /* un poquito más pegados aún */
+  align-items: baseline;
+  column-gap: 6px;
   font-size: 0.8rem;
 }
 
@@ -700,7 +750,7 @@ body.app-body {
 }
 
 .student-record-value {
-  text-align: right;
+  text-align: left; /* más cercano a la etiqueta, se lee como una fila */
 }
 
 .belt-pill {
@@ -861,8 +911,8 @@ body.app-body {
   border-radius: 4px;
   border: 2px solid #000000;
   padding: 6px 8px;
-  background-color: #262626; /* gris oscuro pero más claro que antes */
-  color: #f5f5f5;
+  background-color: #ffffff; /* campos blancos para mejor lectura */
+  color: #000000;            /* texto negro para máximo contraste */
   font-size: 0.75rem;
 }
 
@@ -936,6 +986,48 @@ body.app-body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Mantener fija la barra de acciones en el modal de alumnos de examen */
+#modal-exam-students .modal-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+#modal-exam-students .martial-form {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+#modal-exam-students .table-wrapper {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+#modal-exam-students .modal-actions {
+  position: sticky;
+  bottom: 0;
+  background: #2b2b2b;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #222;
+}
+
+.inline-notice {
+  margin: 6px 0 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.08);
+  color: #c8e6c9;
+}
+
+.inline-notice.inline-notice-error {
+  border-color: rgba(244, 67, 54, 0.6);
+  background: rgba(244, 67, 54, 0.08);
+  color: #ffcdd2;
 }
 
 /* Calendario */

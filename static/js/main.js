@@ -1,3 +1,16 @@
+function showExamStudentsNotice(message, type = 'success') {
+  if (!examStudentsNotice) return;
+  examStudentsNotice.textContent = message;
+  examStudentsNotice.classList.remove('hidden');
+  if (type === 'error') {
+    examStudentsNotice.classList.add('inline-notice-error');
+  } else {
+    examStudentsNotice.classList.remove('inline-notice-error');
+  }
+  setTimeout(() => {
+    examStudentsNotice.classList.add('hidden');
+  }, 3000);
+}
 // Navegación entre secciones
 const sections = document.querySelectorAll('.section');
 const navButtons = document.querySelectorAll('.bottom-nav-item');
@@ -910,9 +923,13 @@ async function loadEvents() {
 const examForm = document.getElementById('exam-form');
 const examsList = document.getElementById('exams-list');
 const examPdfBox = document.getElementById('exam-pdf-box');
+// Botones del flujo viejo (un solo alumno)
 const btnGenerateExamPdf = document.getElementById('btn-generate-exam-pdf');
 const btnGenerateEvalPdf = document.getElementById('btn-generate-eval-pdf');
 const examStudentIdInput = document.getElementById('exam-student-id');
+// Nuevo flujo: multi-alumno por examen
+const btnOpenExamStudents = document.getElementById('btn-open-exam-students');
+const btnGenerateExamRindePdf = document.getElementById('btn-generate-exam-rinde-pdf');
 const examDateDisplay = document.getElementById('exam-date-display');
 const examDatePopover = document.getElementById('exam-date-popover');
 const examDateCalendar = document.getElementById('exam-date-calendar');
@@ -923,6 +940,13 @@ const btnCloseExamDelete = document.getElementById('btn-close-exam-delete');
 const btnCancelExamDelete = document.getElementById('btn-cancel-exam-delete');
 const btnConfirmExamDelete = document.getElementById('btn-confirm-exam-delete');
 const examDeleteMessage = document.getElementById('exam-delete-message');
+// Modal multi-alumno
+const modalExamStudents = document.getElementById('modal-exam-students');
+const btnCloseExamStudents = document.getElementById('btn-close-exam-students');
+const btnCancelExamStudents = document.getElementById('btn-cancel-exam-students');
+const btnSaveExamStudents = document.getElementById('btn-save-exam-students');
+const examStudentsTbody = document.getElementById('exam-students-tbody');
+const examStudentsNotice = document.getElementById('exam-students-notice');
 const examGraduationSelect = document.getElementById('exam-graduation');
 const examLevelHiddenInput = document.getElementById('exam-level');
 const examBeltInput = document.getElementById('exam-belt');
@@ -995,6 +1019,8 @@ let examCalendarYearMonth = (() => {
 })();
 
 let pendingDeleteExamId = null;
+// Selección en memoria de alumnos por examen (solo sesión actual)
+const examStudentsSelection = {}; // { [eventId]: number[] }
 
 function closeExamDeleteModal() {
   modalExamDelete?.classList.add('hidden');
@@ -1147,7 +1173,7 @@ examForm?.addEventListener('submit', async (e) => {
     type: 'exam',
     date: document.getElementById('exam-date').value,
     time: document.getElementById('exam-time').value,
-    level: document.getElementById('exam-level').value,
+    level: '',
     place: document.getElementById('exam-place').value,
     notes: document.getElementById('exam-notes').value,
     title: 'Examen',
@@ -1223,8 +1249,8 @@ function renderExamsFromEvents() {
 }
 
 // ... (rest of the code remains the same)
-function selectExam(eventId, liElement) {
-  if (!examPdfBox || !btnGenerateExamPdf) return;
+async function selectExam(eventId, liElement) {
+  if (!examPdfBox) return;
   examPdfBox.setAttribute('data-event-id', String(eventId));
 
   const children = examsList?.querySelectorAll('.exams-list-item') || [];
@@ -1232,9 +1258,160 @@ function selectExam(eventId, liElement) {
   if (liElement) {
     liElement.classList.add('exams-list-item-selected');
   }
-  btnGenerateExamPdf.disabled = false;
-  if (btnGenerateEvalPdf) btnGenerateEvalPdf.disabled = false;
+  // Habilitar botones del nuevo flujo si existen
+  if (btnOpenExamStudents) btnOpenExamStudents.disabled = false;
+  if (btnGenerateExamRindePdf) btnGenerateExamRindePdf.disabled = false;
+
+  // Cargar desde backend los alumnos ya inscriptos para este examen
+  try {
+    const inscriptos = await apiGet(`/api/exams/${eventId}/students`);
+    const ids = (inscriptos || []).map((s) => s.id);
+    examStudentsSelection[eventId] = ids;
+  } catch (err) {
+    console.error('No se pudieron leer los alumnos del examen seleccionado', err);
+  }
 }
+
+// Abrir modal de alumnos que rinden
+async function openExamStudentsModal() {
+  if (!examPdfBox || !modalExamStudents || !examStudentsTbody) return;
+  const eventId = examPdfBox.getAttribute('data-event-id');
+  if (!eventId) {
+    alert('Primero seleccioná un examen de la lista.');
+    return;
+  }
+
+  try {
+    // Asegurar alumnos cargados
+    if (!studentsCache || !studentsCache.length) {
+      studentsCache = await apiGet('/api/students');
+    }
+    // Alumnos ya inscriptos en este examen desde backend
+    const inscriptos = await apiGet(`/api/exams/${eventId}/students`);
+    const selectedIds = new Set((inscriptos || []).map((s) => s.id));
+    examStudentsTbody.innerHTML = '';
+
+    studentsCache.forEach((s) => {
+      const tr = document.createElement('tr');
+      const belt = s.belt || '';
+      const { baseClass, edgeClass, edgeDifferentClass } = getBeltColorClasses(belt);
+      const beltLabel = belt
+        ? belt
+            .split(' ')
+            .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+            .join(' ')
+        : '';
+
+      const statusRaw = (s.status || 'active').toLowerCase();
+      const isActive = statusRaw === 'active';
+      const statusLabel = isActive ? 'Activo' : 'Inactivo';
+
+      const checkedAttr = selectedIds.has(s.id) ? 'checked' : '';
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="exam-student-checkbox" data-student-id="${s.id}" ${checkedAttr} /></td>
+        <td>${s.last_name || ''}</td>
+        <td>${s.first_name || ''}</td>
+        <td>${belt ? `<span class="belt-pill ${baseClass} ${edgeClass} ${edgeDifferentClass}">${beltLabel}</span>` : ''}</td>
+        <td>${statusLabel}</td>
+      `;
+
+      // Permitir click en toda la fila
+      tr.addEventListener('click', (e) => {
+        const cb = tr.querySelector('.exam-student-checkbox');
+        if (!cb) return;
+        if (e.target === cb) return;
+        cb.checked = !cb.checked;
+      });
+
+      examStudentsTbody.appendChild(tr);
+    });
+
+    modalExamStudents.classList.remove('hidden');
+  } catch (err) {
+    console.error(err);
+    alert('No se pudieron cargar los alumnos para este examen.');
+  }
+}
+
+function closeExamStudentsModal() {
+  modalExamStudents?.classList.add('hidden');
+}
+
+btnOpenExamStudents?.addEventListener('click', openExamStudentsModal);
+btnCloseExamStudents?.addEventListener('click', closeExamStudentsModal);
+btnCancelExamStudents?.addEventListener('click', closeExamStudentsModal);
+
+btnSaveExamStudents?.addEventListener('click', () => {
+  if (!examPdfBox || !examStudentsTbody) {
+    closeExamStudentsModal();
+    return;
+  }
+
+  const eventId = Number(examPdfBox.getAttribute('data-event-id'));
+  if (!eventId) {
+    closeExamStudentsModal();
+    return;
+  }
+
+  const checkboxes = examStudentsTbody.querySelectorAll('.exam-student-checkbox');
+  const ids = [];
+  checkboxes.forEach((cb) => {
+    if (cb.checked) {
+      const sid = cb.getAttribute('data-student-id');
+      if (sid) ids.push(Number(sid));
+    }
+  });
+
+  apiSend(`/api/exams/${eventId}/students`, 'PUT', { student_ids: ids })
+    .then(() => {
+      examStudentsSelection[eventId] = ids;
+      closeExamStudentsModal();
+      showExamStudentsNotice('Alumnos que rinden guardados correctamente.');
+    })
+    .catch((err) => {
+      console.error(err);
+      showExamStudentsNotice('No se pudieron guardar los alumnos para este examen.', 'error');
+    });
+});
+
+btnGenerateExamRindePdf?.addEventListener('click', async () => {
+  if (!examPdfBox) return;
+  const eventId = Number(examPdfBox.getAttribute('data-event-id'));
+  if (!eventId) {
+    alert('Primero seleccioná un examen de la lista.');
+    return;
+  }
+
+  const ids = examStudentsSelection[eventId] || [];
+  if (!ids.length) {
+    alert('Configurá primero los alumnos que rinden para este examen.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/exams/${eventId}/rinde-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_ids: ids }),
+    });
+
+    if (!res.ok) {
+      throw new Error('No se pudo generar el PDF de rendida (código ' + res.status + ').');
+    }
+
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `rinde_examen_${eventId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo generar el PDF de rendida.');
+  }
+});
 
 btnGenerateExamPdf?.addEventListener('click', () => {
   if (!examPdfBox) return;
@@ -1558,16 +1735,6 @@ setupStudentNameAutocomplete(
 // Inicializar Flatpickr como datepicker oscuro si está disponible
 (function initFlatpickrDatepickers() {
   if (typeof flatpickr === 'undefined') return;
-
-  flatpickr('#exam-date', {
-    dateFormat: 'Y-m-d',
-    defaultDate: document.getElementById('exam-date')?.value || undefined,
-    altInput: true,
-    altFormat: 'd/m/Y',
-    locale: 'es',
-    disableMobile: true,
-  });
-
   flatpickr('#fees-payment-date', {
     dateFormat: 'Y-m-d',
     defaultDate: document.getElementById('fees-payment-date')?.value || undefined,
