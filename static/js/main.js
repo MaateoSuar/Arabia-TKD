@@ -1476,7 +1476,16 @@ btnGenerateExamRindePdf?.addEventListener('click', async () => {
     const blob = await res.blob();
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `rinde_examen_${eventId}.pdf`;
+
+    // Intentar extraer el nombre de archivo del header Content-Disposition
+    const cd = res.headers.get('Content-Disposition') || res.headers.get('content-disposition') || '';
+    let filename = '';
+    const match = cd.match(/filename="?([^";]+)"?/i);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+
+    link.download = filename || '';
     document.body.appendChild(link);
     link.click();
     link.remove();

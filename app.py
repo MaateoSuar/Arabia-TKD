@@ -48,7 +48,7 @@ with app.app_context():
             except Exception:
                 pass
 
-            # Intentar agregar columna tutor_type si no existe
+            # Intentar agregar columna tutor_type si no existe (si ya existe, se ignora el error)
             try:
                 conn.execute(text("ALTER TABLE students ADD COLUMN tutor_type TEXT DEFAULT 'padre'"))
             except Exception:
@@ -129,6 +129,18 @@ def index():
 @app.route('/api/students', methods=['GET', 'POST'])
 def api_students():
     if request.method == 'GET':
+        # Asegurar que la columna tutor_type exista en entornos como Railway (Postgres).
+        # Si ya existe o la BD no soporta IF NOT EXISTS, se ignora cualquier error.
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text(
+                    "ALTER TABLE IF EXISTS students "
+                    "ADD COLUMN IF NOT EXISTS tutor_type TEXT DEFAULT 'padre'"
+                ))
+                conn.commit()
+        except Exception:
+            pass
+
         students_q = Student.query.order_by(
             (Student.last_name.is_(None)).asc(),
             Student.last_name.asc(),
@@ -810,6 +822,18 @@ def generate_exam_rinde_pdf(event_id: int):
     if not students:
         return jsonify({'error': 'Alumnos no encontrados'}), 404
 
+    # Ordenar alumnos alfabéticamente por Apellido, Nombre (o full_name como fallback)
+    def _student_sort_key(st: Student):
+        ln = (st.last_name or '').strip().lower()
+        fn = (st.first_name or '').strip().lower()
+        full = (st.full_name or '').strip().lower()
+        # Si no hay last/first, usamos full_name
+        if ln or fn:
+            return (ln, fn)
+        return (full or '', '')
+
+    students.sort(key=_student_sort_key)
+
     # Progresión de cinturones, Gup y Graduación (igual que en el frontend)
     belt_progress = [
         {"belt": "Blanco", "gup": "10º Gup", "graduation": "Primera"},
@@ -926,7 +950,7 @@ def generate_exam_rinde_pdf(event_id: int):
         y_start_right_mid = page_height - 200
         step = 14
 
-        # Crear overlay con ReportLab
+        # Crear overlay con ReportLab (solo datos variables, sin modificar el título original del formulario)
         overlay_buf = BytesIO()
         c = canvas.Canvas(overlay_buf, pagesize=(page_width, page_height))
         c.setFont('Helvetica', 9)
@@ -986,7 +1010,19 @@ def generate_exam_rinde_pdf(event_id: int):
     writer.write(out_buffer)
     out_buffer.seek(0)
 
-    filename = f"rinde_examen_{event_id}.pdf"
+    # Usar la fecha del examen en el nombre del archivo como DD-MM-AAAA (sin barras, para que sea válido)
+    if event.date:
+        try:
+            _exam_dt = datetime.strptime(event.date, '%Y-%m-%d').date()
+            date_for_name = _exam_dt.strftime('%d-%m-%Y')
+        except ValueError:
+            date_for_name = event.date.replace('/', '-').replace(' ', '_')
+    else:
+        date_for_name = 'sin_fecha'
+
+    filename = f"Examen_Taekwondo_{date_for_name}.pdf"
+    # Debug: ver en consola qué nombre de archivo está usando realmente el backend
+    print(f"[generate_exam_rinde_pdf] filename= {filename}")
     return send_file(out_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
 
 
