@@ -44,7 +44,13 @@ with app.app_context():
 
             # Intentar agregar columna status si no existe
             try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'"))
+                conn.execute(text("ALTER TABLE students ADD COLUMN status TEXT DEFAULT 'activo'"))
+            except Exception:
+                pass
+
+            # Intentar agregar columna tutor_type si no existe
+            try:
+                conn.execute(text("ALTER TABLE students ADD COLUMN tutor_type TEXT DEFAULT 'padre'"))
             except Exception:
                 pass
 
@@ -79,7 +85,8 @@ class Student(db.Model):
     mother_phone = db.Column(db.String(40))
     parent_email = db.Column(db.String(120))
     notes = db.Column(db.Text)
-    status = db.Column(db.String(20), nullable=False, default="active")
+    status = db.Column(db.String(10), default='activo')
+    tutor_type = db.Column(db.String(20), default='padre')  # 'padre' | 'madre'
 
 
 class Event(db.Model):
@@ -153,6 +160,7 @@ def api_students():
                 'parent_email': s.parent_email,
                 'notes': s.notes,
                 'status': s.status,
+                'tutor_type': s.tutor_type,
             })
         return jsonify(result)
 
@@ -187,7 +195,8 @@ def api_students():
         mother_phone=data.get('mother_phone'),
         parent_email=data.get('parent_email'),
         notes=data.get('notes'),
-        status=data.get('status') or 'active',
+        status=data.get('status', 'activo'),
+        tutor_type=data.get('tutor_type', 'padre'),
     )
     db.session.add(student)
     db.session.commit()
@@ -226,6 +235,7 @@ def api_student_detail(student_id: int):
             'parent_email': student.parent_email,
             'notes': student.notes,
             'status': student.status,
+            'tutor_type': student.tutor_type,
         })
 
     if request.method == 'PUT':
@@ -234,7 +244,7 @@ def api_student_detail(student_id: int):
             'full_name', 'last_name', 'first_name', 'dni', 'gender', 'blood',
             'nationality', 'province', 'country', 'city', 'address', 'zip',
             'school', 'belt', 'father_name', 'mother_name', 'father_phone',
-            'mother_phone', 'parent_email', 'notes', 'status',
+            'mother_phone', 'parent_email', 'notes', 'status', 'tutor_type',
         ]:
             if field in data:
                 setattr(student, field, data[field])
@@ -345,7 +355,6 @@ def api_exam_students(event_id: int):
                 'last_name': s.last_name,
                 'first_name': s.first_name,
                 'belt': s.belt,
-                'status': s.status,
             })
         return jsonify(result)
 

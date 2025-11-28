@@ -37,10 +37,9 @@
             <th>Nombre</th>
             <th>Edad</th>
             <th>Cinturón</th>
-            <th>Nombre del padre</th>
-            <th>Celular del padre</th>
+            <th>Nombre del tutor</th>
+            <th>Celular del tutor</th>
             <th>Estado</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="students-tbody"></tbody>
@@ -145,18 +144,23 @@
 
       <div class="form-grid">
         <label class="form-field">
-          <span>Nombre completo</span>
-          <input id="student-full-name" type="text" required />
+          <span>Apellido</span>
+          <input id="student-last-name" type="text" />
+        </label>
+
+        <label class="form-field">
+          <span>Nombre</span>
+          <input id="student-first-name" type="text" />
         </label>
 
         <label class="form-field">
           <span>DNI</span>
-          <input id="student-dni" type="text" required placeholder="42.215.839" />
+          <input id="student-dni" type="text" placeholder="42.215.839" />
         </label>
 
         <label class="form-field">
           <span>Sexo</span>
-          <select id="student-gender" required>
+          <select id="student-gender">
             <option value="">Seleccionar</option>
             <option value="masculino">Masculino</option>
             <option value="femenino">Femenino</option>
@@ -165,52 +169,52 @@
 
         <label class="form-field">
           <span>Fecha de nacimiento</span>
-          <input id="student-birthdate" type="text" required />
+          <input id="student-birthdate" type="text" />
         </label>
 
         <label class="form-field">
           <span>Grupo sanguíneo</span>
-          <input id="student-blood" type="text" required placeholder="0+, A-, etc." />
+          <input id="student-blood" type="text" placeholder="0+, A-, etc." />
         </label>
 
         <label class="form-field">
           <span>Nacionalidad</span>
-          <input id="student-nationality" type="text" required />
+          <input id="student-nationality" type="text" />
         </label>
 
         <label class="form-field">
           <span>Provincia</span>
-          <input id="student-province" type="text" required />
+          <input id="student-province" type="text" />
         </label>
 
         <label class="form-field">
           <span>País</span>
-          <input id="student-country" type="text" required />
+          <input id="student-country" type="text" />
         </label>
 
         <label class="form-field">
           <span>Localidad</span>
-          <input id="student-city" type="text" required />
+          <input id="student-city" type="text" />
         </label>
 
         <label class="form-field">
           <span>Dirección</span>
-          <input id="student-address" type="text" required />
+          <input id="student-address" type="text" />
         </label>
 
         <label class="form-field">
           <span>Código Postal</span>
-          <input id="student-zip" type="text" required />
+          <input id="student-zip" type="text" />
         </label>
 
         <label class="form-field">
-          <span>Colegio (opcional)</span>
+          <span>Colegio</span>
           <input id="student-school" type="text" />
         </label>
 
         <label class="form-field">
           <span>Cinturón</span>
-          <select id="student-belt" required>
+          <select id="student-belt">
             <option value="">Seleccionar</option>
             <option value="Blanco">Blanco</option>
             <option value="Blanco Punta Amarilla">Blanco Punta Amarilla</option>
@@ -228,27 +232,41 @@
 
         <label class="form-field">
           <span>Nombre completo padre</span>
-          <input id="student-father-name" type="text" required />
+          <input id="student-father-name" type="text" />
         </label>
 
         <label class="form-field">
           <span>Nombre completo madre</span>
-          <input id="student-mother-name" type="text" required />
+          <input id="student-mother-name" type="text" />
         </label>
 
         <label class="form-field">
           <span>Celular padre</span>
-          <input id="student-father-phone" type="tel" required />
+          <input id="student-father-phone" type="tel" />
         </label>
 
         <label class="form-field">
           <span>Celular madre</span>
-          <input id="student-mother-phone" type="tel" required />
+          <input id="student-mother-phone" type="tel" />
         </label>
 
-        <label class="form-field">
-          <span>Email de alguno de los padres</span>
-          <input id="student-parent-email" type="email" required />
+        <label class="form-field form-field-full">
+          <span>Email(s) de alguno de los padres</span>
+          <input id="student-parent-email" type="text" placeholder="ej: padre@mail.com, madre@mail.com" />
+        </label>
+
+        <label class="form-field form-field-full">
+          <span>Notas (opcional)</span>
+          <textarea id="student-notes" rows="3" placeholder="Información extra sobre el alumno, salud, horarios, etc."></textarea>
+        </label>
+
+        <label class="form-field form-field-full">
+          <span>Tutor principal</span>
+          <select id="student-tutor-type">
+            <option value="">Sin definir</option>
+            <option value="padre">Padre</option>
+            <option value="madre">Madre</option>
+          </select>
         </label>
       </div>
 

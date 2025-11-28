@@ -168,6 +168,7 @@ let studentsCache = [];
 const studentsTbody = document.getElementById('students-tbody');
 const studentsEmptyState = document.getElementById('students-empty-state');
 const studentsBeltFilter = document.getElementById('students-belt-filter');
+const studentsStatusFilter = document.getElementById('students-status-filter');
 const btnOpenCreateStudent = document.getElementById('btn-open-create-student');
 const modalStudent = document.getElementById('modal-student');
 const btnCloseStudent = document.getElementById('btn-close-student');
@@ -374,7 +375,25 @@ function openStudentModal(editData) {
   if (editData) {
     modalStudentTitle.textContent = 'Editar Alumno';
     studentIdInput.value = editData.id;
-    document.getElementById('student-full-name').value = editData.full_name || '';
+    const lastInput = document.getElementById('student-last-name');
+    const firstInput = document.getElementById('student-first-name');
+
+    if (lastInput && firstInput) {
+      if (editData.last_name || editData.first_name) {
+        lastInput.value = editData.last_name || '';
+        firstInput.value = editData.first_name || '';
+      } else {
+        const full = (editData.full_name || '').trim();
+        if (full) {
+          const parts = full.split(' ');
+          lastInput.value = parts.shift() || '';
+          firstInput.value = parts.join(' ');
+        } else {
+          lastInput.value = '';
+          firstInput.value = '';
+        }
+      }
+    }
     document.getElementById('student-dni').value = editData.dni || '';
     document.getElementById('student-gender').value = editData.gender || '';
     const birthInput = document.getElementById('student-birthdate');
@@ -397,6 +416,10 @@ function openStudentModal(editData) {
     document.getElementById('student-father-phone').value = editData.father_phone || '';
     document.getElementById('student-mother-phone').value = editData.mother_phone || '';
     document.getElementById('student-parent-email').value = editData.parent_email || '';
+    const notesEl = document.getElementById('student-notes');
+    if (notesEl) notesEl.value = editData.notes || '';
+    const tutorSelect = document.getElementById('student-tutor-type');
+    if (tutorSelect) tutorSelect.value = editData.tutor_type || '';
   } else {
     modalStudentTitle.textContent = 'Crear Alumno';
     studentIdInput.value = '';
@@ -409,10 +432,16 @@ function openStudentModal(editData) {
     const birthDisplay = document.getElementById('student-birthdate-display');
     if (birthInput) birthInput.value = '';
     if (birthDisplay) birthDisplay.textContent = 'Seleccionar fecha';
+    const tutorSelect = document.getElementById('student-tutor-type');
+    if (tutorSelect) tutorSelect.value = '';
   }
 }
 
 studentsBeltFilter?.addEventListener('change', () => {
+  loadStudents();
+});
+
+studentsStatusFilter?.addEventListener('change', () => {
   loadStudents();
 });
 
@@ -531,14 +560,25 @@ async function loadStudents() {
     }
 
     const selectedBelt = studentsBeltFilter ? studentsBeltFilter.value : '';
+    const selectedStatus = studentsStatusFilter ? studentsStatusFilter.value : '';
 
-    const filtered = selectedBelt
-      ? list.filter((s) => {
-          const beltValue = (s.belt || '').toLowerCase();
-          const filterValue = selectedBelt.toLowerCase();
-          return beltValue.includes(filterValue);
-        })
-      : list;
+    const filtered = list.filter((s) => {
+      // filtro por cinturón
+      if (selectedBelt) {
+        const beltValue = (s.belt || '').toLowerCase();
+        const filterValue = selectedBelt.toLowerCase();
+        if (!beltValue.includes(filterValue)) return false;
+      }
+
+      // filtro por estado (activo/inactivo)
+      if (selectedStatus) {
+        const statusValue = (s.status || 'activo').toLowerCase();
+        if (selectedStatus === 'active' && statusValue !== 'activo') return false;
+        if (selectedStatus === 'inactive' && statusValue !== 'inactivo') return false;
+      }
+
+      return true;
+    });
 
     filtered.forEach((st) => {
       const tr = document.createElement('tr');
@@ -552,6 +592,10 @@ async function loadStudents() {
         : '';
       const { baseClass, edgeClass, edgeDifferentClass } = getBeltColorClasses(belt);
 
+      const tutorType = (st.tutor_type || 'padre').toLowerCase();
+      const tutorName = tutorType === 'madre' ? (st.mother_name || '') : (st.father_name || '');
+      const tutorPhone = tutorType === 'madre' ? (st.mother_phone || '') : (st.father_phone || '');
+
       tr.innerHTML = `
         <td>${st.last_name || ''}</td>
         <td>${st.first_name || ''}</td>
@@ -559,14 +603,41 @@ async function loadStudents() {
         <td>
           ${belt ? `<span class="belt-pill ${baseClass} ${edgeClass} ${edgeDifferentClass}">${beltLabel}</span>` : ''}
         </td>
-        <td>${st.father_name || ''}</td>
-        <td>${st.father_phone || ''}</td>
-        <td class="students-actions">
+        <td>${tutorName}</td>
+        <td>${tutorPhone}</td>
+        <td class="students-status-cell">
+          <button class="student-status-pill" data-id="${st.id}"></button>
           <button class="students-menu-btn" data-id="${st.id}">⋮</button>
         </td>
       `;
 
+      const statusBtn = tr.querySelector('.student-status-pill');
       const menuBtn = tr.querySelector('.students-menu-btn');
+
+      const applyStatusToButton = (statusValue) => {
+        const isInactive = (statusValue || 'activo').toLowerCase() === 'inactivo';
+        statusBtn.textContent = isInactive ? 'Inactivo' : 'Activo';
+        statusBtn.classList.toggle('student-status-inactive', isInactive);
+        statusBtn.classList.toggle('student-status-active', !isInactive);
+      };
+
+      applyStatusToButton(st.status);
+
+      statusBtn.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const current = (st.status || 'activo').toLowerCase() === 'inactivo' ? 'inactivo' : 'activo';
+        const next = current === 'activo' ? 'inactivo' : 'activo';
+
+        try {
+          await apiSend(`/api/students/${st.id}`, 'PUT', { status: next });
+          st.status = next;
+          applyStatusToButton(st.status);
+        } catch (err) {
+          console.error(err);
+          alert('No se pudo cambiar el estado del alumno.');
+        }
+      });
+
       menuBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         openStudentActionsMenu(menuBtn, st);
@@ -633,9 +704,9 @@ if (studentDniInput) {
 studentForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = studentIdInput.value;
-  const fullName = document.getElementById('student-full-name').value.trim();
-  const [lastName, ...rest] = fullName.split(' ');
-  const firstName = rest.join(' ');
+  const lastName = document.getElementById('student-last-name').value.trim();
+  const firstName = document.getElementById('student-first-name').value.trim();
+  const fullName = [lastName, firstName].filter(Boolean).join(' ');
 
   const payload = {
     full_name: fullName,
@@ -658,6 +729,8 @@ studentForm?.addEventListener('submit', async (e) => {
     father_phone: document.getElementById('student-father-phone').value,
     mother_phone: document.getElementById('student-mother-phone').value,
     parent_email: document.getElementById('student-parent-email').value,
+    notes: document.getElementById('student-notes').value,
+    tutor_type: document.getElementById('student-tutor-type').value || undefined,
   };
 
   try {
@@ -1738,6 +1811,15 @@ setupStudentNameAutocomplete(
   flatpickr('#fees-payment-date', {
     dateFormat: 'Y-m-d',
     defaultDate: document.getElementById('fees-payment-date')?.value || undefined,
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
+  });
+
+  flatpickr('#exam-date', {
+    dateFormat: 'Y-m-d',
+    defaultDate: document.getElementById('exam-date')?.value || undefined,
     altInput: true,
     altFormat: 'd/m/Y',
     locale: 'es',
