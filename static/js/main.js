@@ -1477,15 +1477,15 @@ btnGenerateExamRindePdf?.addEventListener('click', async () => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
 
-    // Intentar extraer el nombre de archivo del header Content-Disposition
-    const cd = res.headers.get('Content-Disposition') || res.headers.get('content-disposition') || '';
+    // Usar el nombre de archivo que manda el backend en Content-Disposition, si existe
+    const dispo = res.headers.get('Content-Disposition') || '';
     let filename = '';
-    const match = cd.match(/filename="?([^";]+)"?/i);
+    const match = dispo.match(/filename="?([^";]+)"?/i);
     if (match && match[1]) {
       filename = match[1];
     }
 
-    link.download = filename || '';
+    link.download = filename || `Examen_Taekwondo_${eventId}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();

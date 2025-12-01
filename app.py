@@ -334,6 +334,10 @@ def api_event_detail(event_id: int):
         })
 
     # DELETE
+    # Borrar primero todas las inscripciones vinculadas a este evento (examen)
+    ExamInscription.query.filter_by(event_id=event.id).delete()
+
+    # Luego borrar el evento en sí
     db.session.delete(event)
     db.session.commit()
     return '', 204
@@ -797,7 +801,7 @@ def generate_exam_rinde_pdf(event_id: int):
     """Genera un PDF de rendida multi-hoja usando el PDF base de Taekwondo.
 
     Cada alumno va en una página distinta, partiendo de la primera página del
-    archivo 'src/PDF TAEKWONDO segunda edicion.pdf'.
+    archivo 'src/PDF TAEKWONDO - ultima edición.pdf'.
     """
 
     event = Event.query.get(event_id)
@@ -863,7 +867,7 @@ def generate_exam_rinde_pdf(event_id: int):
         return current_info, next_info
 
     # Cargar PDF base
-    template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+    template_path = os.path.join('src', 'PDF TAEKWONDO - ultima edición.pdf')
     if not os.path.exists(template_path):
         return jsonify({'error': 'PDF base no encontrado en src'}), 500
 
@@ -1020,7 +1024,13 @@ def generate_exam_rinde_pdf(event_id: int):
     else:
         date_for_name = 'sin_fecha'
 
-    filename = f"Examen_Taekwondo_{date_for_name}.pdf"
+    # Incluir el lugar del examen en el nombre del archivo (por ejemplo, el gimnasio o sede)
+    raw_place = event.place or 'Taekwondo'
+    # Normalizar un poco el lugar para usarlo en un nombre de archivo
+    place_slug = ''.join(ch if ch.isalnum() or ch in (' ', '-', '_') else ' ' for ch in raw_place)
+    place_slug = '_'.join(part for part in place_slug.split() if part)
+
+    filename = f"Examen_{place_slug}_{date_for_name}.pdf"
     # Debug: ver en consola qué nombre de archivo está usando realmente el backend
     print(f"[generate_exam_rinde_pdf] filename= {filename}")
     return send_file(out_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
@@ -1034,7 +1044,7 @@ def exam_template_debug_pdf():
   del formulario y así ajustar con precisión las coordenadas.
   """
 
-  template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+  template_path = os.path.join('src', 'PDF TAEKWONDO - ultima edición.pdf')
   if not os.path.exists(template_path):
       return jsonify({'error': 'PDF base no encontrado en src'}), 500
 
@@ -1105,7 +1115,7 @@ def exam_template_fields():
     en la plantilla editable y poder mapearlos desde el backend.
     """
 
-    template_path = os.path.join('src', 'PDF TAEKWONDO segunda edicion.pdf')
+    template_path = os.path.join('src', 'PDF TAEKWONDO - ultima edición.pdf')
     if not os.path.exists(template_path):
         return jsonify({'error': 'PDF base no encontrado en src'}), 500
 
