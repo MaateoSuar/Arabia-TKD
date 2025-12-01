@@ -563,17 +563,21 @@ async function loadStudents() {
     const selectedStatus = studentsStatusFilter ? studentsStatusFilter.value : '';
 
     const filtered = list.filter((s) => {
-      // filtro por cinturón
+      // filtro por cinturón (coincidencia exacta por valor de cinturón)
       if (selectedBelt) {
         const beltValue = (s.belt || '').toLowerCase();
         const filterValue = selectedBelt.toLowerCase();
-        if (!beltValue.includes(filterValue)) return false;
+        if (!beltValue || beltValue !== filterValue) return false;
       }
 
       // filtro por estado (activo/inactivo)
       if (selectedStatus) {
-        const statusValue = (s.status || 'activo').toLowerCase();
-        if (selectedStatus === 'active' && statusValue !== 'activo') return false;
+        const rawStatus = (s.status == null || s.status === '') ? 'activo' : String(s.status);
+        const statusValue = rawStatus.toLowerCase().trim();
+
+        // "Activos": cualquier alumno que NO esté marcado explícitamente como "inactivo".
+        if (selectedStatus === 'active' && statusValue === 'inactivo') return false;
+        // "Inactivos": solo los que están exactamente como "inactivo".
         if (selectedStatus === 'inactive' && statusValue !== 'inactivo') return false;
       }
 
@@ -1375,8 +1379,15 @@ async function openExamStudentsModal() {
             .join(' ')
         : '';
 
-      const statusRaw = (s.status || 'active').toLowerCase();
-      const isActive = statusRaw === 'active';
+      // Normalizar estado igual que en la vista principal
+      const rawStatus = (s.status == null || s.status === '') ? 'activo' : String(s.status);
+      const statusValue = rawStatus.toLowerCase().trim();
+      const isInactive = statusValue === 'inactivo';
+      const isActive = !isInactive;
+
+      // Solo mostrar alumnos activos en este modal
+      if (!isActive) return;
+
       const statusLabel = isActive ? 'Activo' : 'Inactivo';
 
       const checkedAttr = selectedIds.has(s.id) ? 'checked' : '';
