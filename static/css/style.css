@@ -47,7 +47,7 @@ body.app-body {
 }
 
 .app-header-main {
-  max-width: 1080px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 10px 10px 8px;
   display: flex;
@@ -107,12 +107,12 @@ body.app-body {
 .app-main {
   flex: 1;
   padding: 10px 12px 80px;
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto 60px;
 }
 
 .app-footer {
-  max-width: 1080px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 6px 10px 70px;
   font-size: 0.7rem;
@@ -1240,10 +1240,12 @@ body.app-body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
 }
 
 .fees-column {
   flex: 1;
+  min-width: 0;
 }
 
 .fees-student-header {
@@ -1269,6 +1271,28 @@ body.app-body {
   outline-offset: -2px;
 }
 
+.fees-overview-pay-input {
+  width: 78px;
+  min-width: 78px;
+  max-width: 78px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+}
+
+.fees-overview-table td:nth-child(4) {
+  width: 88px;
+}
+
+.fees-overview-table td:nth-child(5) {
+  width: 86px;
+}
+
+.fees-overview-pay-btn {
+  padding: 6px 10px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
 .fees-apply-box {
   border: 1px solid #222;
   border-radius: 6px;
@@ -1291,9 +1315,36 @@ body.app-body {
   font-size: 0.8rem;
 }
 
+.fees-month-filter-box {
+  margin-bottom: 10px;
+}
+
+.fees-inline-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.fees-inline-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.fees-checkbox-field {
+  justify-content: flex-end;
+}
+
 .status-pill-warn {
   border-color: #f59e0b;
   color: #fcd34d;
+  background-color: rgba(245, 158, 11, 0.12);
+}
+
+.status-pill-partial {
+  border-color: #42a5f5;
+  color: #90caf9;
+  background-color: rgba(66, 165, 245, 0.12);
 }
 
 .fees-status {
@@ -1425,11 +1476,11 @@ body.app-body {
   }
 
   .fees-column-left {
-    flex: 1.2;
+    flex: 1.35;
   }
 
   .fees-column-right {
-    flex: 1;
+    flex: 1.05;
   }
 }
 

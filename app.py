@@ -530,8 +530,13 @@ def _get_fee_config():
     _ensure_fees_tables()
     cfg = FeeConfig.query.order_by(FeeConfig.id.asc()).first()
     if not cfg:
-        cfg = FeeConfig(monthly_amount=0, due_day=10, proration_mode='days', proration_percent_default=100)
+        cfg = FeeConfig(monthly_amount=0, due_day=1, proration_mode='percent', proration_percent_default=100)
         db.session.add(cfg)
+        db.session.commit()
+    if int(cfg.due_day or 1) != 1 or (cfg.proration_mode or 'percent') != 'percent' or float(cfg.proration_percent_default or 100) != 100:
+        cfg.due_day = 1
+        cfg.proration_mode = 'percent'
+        cfg.proration_percent_default = 100
         db.session.commit()
     return cfg
 
@@ -601,23 +606,14 @@ def _create_fee_charge(student_id: int, cfg: FeeConfig, settings: StudentFeeSett
         return False
     discount_amount = _compute_discount_amount(base_amount, settings)
 
-    proration_mode = body.get('proration_mode')
-    start_date_raw = body.get('start_date')
-    proration_percent_raw = body.get('proration_percent')
-    proration = _compute_proration_percent(cfg, period_info, proration_mode, start_date_raw, proration_percent_raw)
-
     net = base_amount - discount_amount
     if net < 0:
         net = 0
-    final_amount = round(net * (float(proration['percent']) / 100.0), 2)
+    final_amount = round(net, 2)
 
     year = period_info['year']
     month = period_info['month']
-    due_day = int(cfg.due_day or 10)
-    dim = _days_in_month(year, month)
-    if due_day > dim:
-        due_day = dim
-    due_date = date(year, month, due_day)
+    due_date = date(year, month, 1)
 
     if existing:
         has_allocations = FeeAllocation.query.filter_by(charge_id=existing.id).count() > 0
@@ -628,9 +624,9 @@ def _create_fee_charge(student_id: int, cfg: FeeConfig, settings: StudentFeeSett
         existing.due_date = due_date
         existing.base_amount = round(base_amount, 2)
         existing.discount_amount = round(discount_amount, 2)
-        existing.proration_mode = proration['mode']
-        existing.proration_percent = proration['percent']
-        existing.proration_start_date = proration['start_date']
+        existing.proration_mode = 'percent'
+        existing.proration_percent = 100
+        existing.proration_start_date = None
         existing.final_amount = final_amount
         return True
 
@@ -640,9 +636,9 @@ def _create_fee_charge(student_id: int, cfg: FeeConfig, settings: StudentFeeSett
         due_date=due_date,
         base_amount=round(base_amount, 2),
         discount_amount=round(discount_amount, 2),
-        proration_mode=proration['mode'],
-        proration_percent=proration['percent'],
-        proration_start_date=proration['start_date'],
+        proration_mode='percent',
+        proration_percent=100,
+        proration_start_date=None,
         final_amount=final_amount,
     )
     db.session.add(charge)
@@ -665,7 +661,11 @@ def _compute_discount_amount(base_amount: float, settings: StudentFeeSettings):
         dval = 0
     if dval < 0:
         dval = 0
-    if dtype == 'percent':
+    if dtype == 'fixed':
+        if dval > base_amount:
+            dval = base_amount
+        discount = base_amount - dval
+    elif dtype == 'percent':
         discount = base_amount * (dval / 100.0)
     elif dtype == 'amount':
         discount = dval
@@ -861,6 +861,9 @@ def _serialize_student_fees(student_id: int):
         'settings': {
             'discount_type': settings.discount_type,
             'discount_value': float(settings.discount_value or 0),
+            'fixed_fee_enabled': (settings.discount_type or '').strip().lower() == 'fixed',
+            'fixed_fee_amount': float(settings.discount_value or 0) if (settings.discount_type or '').strip().lower() == 'fixed' else 0,
+            'effective_monthly_amount': round(float(cfg.monthly_amount or 0) - _compute_discount_amount(float(cfg.monthly_amount or 0), settings), 2),
         },
         'charges': charges_out,
         'payments': payments_out,
@@ -872,15 +875,15 @@ def _serialize_student_fees(student_id: int):
 def api_fees_config():
     cfg = _get_fee_config()
     if not cfg:
-        cfg = FeeConfig(monthly_amount=0, due_day=10, proration_mode='days', proration_percent_default=100)
+        cfg = FeeConfig(monthly_amount=0, due_day=1, proration_mode='percent', proration_percent_default=100)
         db.session.add(cfg)
         db.session.commit()
 
     if request.method == 'GET':
         return jsonify({
             'monthly_amount': float(cfg.monthly_amount or 0),
-            'due_day': int(cfg.due_day or 10),
-            'proration_mode': cfg.proration_mode or 'days',
+            'due_day': 1,
+            'proration_mode': 'percent',
             'proration_percent_default': float(cfg.proration_percent_default or 100),
         })
 
@@ -891,33 +894,9 @@ def api_fees_config():
         except (TypeError, ValueError):
             cfg.monthly_amount = 0
 
-    if 'due_day' in data:
-        try:
-            due_day = int(data.get('due_day') or 10)
-        except (TypeError, ValueError):
-            due_day = 10
-        if due_day < 1:
-            due_day = 1
-        if due_day > 28:
-            # Para evitar problemas con Febrero, por ahora limitamos a 28.
-            due_day = 28
-        cfg.due_day = due_day
-
-    if 'proration_mode' in data:
-        mode = str(data.get('proration_mode') or '').strip().lower()
-        if mode in ('days', 'percent'):
-            cfg.proration_mode = mode
-
-    if 'proration_percent_default' in data:
-        try:
-            pct = float(data.get('proration_percent_default') or 100)
-        except (TypeError, ValueError):
-            pct = 100
-        if pct < 0:
-            pct = 0
-        if pct > 100:
-            pct = 100
-        cfg.proration_percent_default = pct
+    cfg.due_day = 1
+    cfg.proration_mode = 'percent'
+    cfg.proration_percent_default = 100
 
     db.session.commit()
     return jsonify({'status': 'ok'})
@@ -948,12 +927,25 @@ def api_fees_student_settings(student_id: int):
 
     settings = _get_student_fee_settings(student_id)
     data = request.json or {}
+    fixed_fee_enabled = bool(data.get('fixed_fee_enabled'))
+    if fixed_fee_enabled:
+        settings.discount_type = 'fixed'
+        try:
+            fixed_amount = float(data.get('fixed_fee_amount') or 0)
+        except Exception:
+            fixed_amount = 0
+        if fixed_amount < 0:
+            fixed_amount = 0
+        settings.discount_value = fixed_amount
+        db.session.commit()
+        return jsonify({'status': 'ok'})
+
     dtype = data.get('discount_type')
     if dtype is None or dtype == '':
         settings.discount_type = None
     else:
         dtype_norm = str(dtype).strip().lower()
-        if dtype_norm in ('percent', 'amount'):
+        if dtype_norm in ('percent', 'amount', 'fixed'):
             settings.discount_type = dtype_norm
 
     if 'discount_value' in data:
@@ -1055,6 +1047,7 @@ def api_fees_delete_charge(charge_id: int):
 def api_fees_overview():
     _ensure_fees_tables()
     today = date.today()
+    period_filter = _parse_period(request.args.get('period'))
 
     students = Student.query.order_by(
         (Student.last_name.is_(None)).asc(),
@@ -1074,6 +1067,8 @@ def api_fees_overview():
     charges = []
     if active_ids:
         charges = FeeCharge.query.filter(FeeCharge.student_id.in_(active_ids)).all()
+    if period_filter:
+        charges = [c for c in charges if c.period == period_filter['period']]
 
     charges_by_student = {}
     charge_ids = []
@@ -1104,6 +1099,7 @@ def api_fees_overview():
         overdue_total = 0.0
         balance_total = 0.0
         positive_charges_count = 0
+        has_partial = False
         for c in st_charges:
             total = float(c.final_amount or 0)
             if total > 0:
@@ -1112,6 +1108,8 @@ def api_fees_overview():
             balance = round(total - paid, 2)
             if balance < 0:
                 balance = 0.0
+            if paid > 0 and balance > 0:
+                has_partial = True
             balance_total += balance
             if c.due_date and today > c.due_date and balance > 0:
                 overdue_total += balance
@@ -1120,6 +1118,8 @@ def api_fees_overview():
             status = 'sin_registro'
         elif overdue_total > 0:
             status = 'vencida'
+        elif has_partial:
+            status = 'parcial'
         elif balance_total > 0:
             status = 'pendiente'
         else:
