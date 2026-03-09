@@ -821,16 +821,7 @@ def _serialize_student_fees(student_id: int):
     last_payment = payments[0].payment_date if payments else None
 
     if not charges_out:
-        if not last_payment:
-            status = 'sin_registro'
-        else:
-            # Compatibilidad con el comportamiento legacy mientras no existan cuotas por período
-            try:
-                last_dt = datetime.strptime(last_payment, '%Y-%m-%d').date()
-                delta_days = (date.today() - last_dt).days
-                status = 'al_dia' if delta_days <= 30 else 'vencida'
-            except Exception:
-                status = 'sin_registro'
+        status = 'sin_registro'
     elif overdue_total > 0:
         status = 'vencida'
     elif balance_total > 0:
@@ -1102,16 +1093,7 @@ def api_fees_overview():
                 overdue_total += balance
 
         if not st_charges:
-            lp = last_payment_map.get(s.id)
-            if not lp:
-                status = 'sin_registro'
-            else:
-                try:
-                    last_dt = datetime.strptime(lp, '%Y-%m-%d').date()
-                    delta_days = (date.today() - last_dt).days
-                    status = 'al_dia' if delta_days <= 30 else 'vencida'
-                except Exception:
-                    status = 'sin_registro'
+            status = 'sin_registro'
         elif overdue_total > 0:
             status = 'vencida'
         elif balance_total > 0:

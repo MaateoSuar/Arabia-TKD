@@ -1716,6 +1716,7 @@ const feesStudentContent = document.getElementById('fees-student-content');
 const feesStudentNameEl = document.getElementById('fees-student-name');
 const feesStudentMetaEl = document.getElementById('fees-student-meta');
 const feesStudentStatusEl = document.getElementById('fees-student-status');
+const feesFeedback = document.getElementById('fees-feedback');
 const modalFeeChargeDelete = document.getElementById('modal-fee-charge-delete');
 const btnCloseFeeChargeDelete = document.getElementById('btn-close-fee-charge-delete');
 const btnCancelFeeChargeDelete = document.getElementById('btn-cancel-fee-charge-delete');
@@ -1755,6 +1756,22 @@ let feesSelectedStudentId = null;
 let feesSelectedStudentData = null;
 let pendingFeeChargeDelete = null;
 let pendingFeePaymentDelete = null;
+let feesFeedbackTimer = null;
+
+function showFeesFeedback(message, type = 'info') {
+  if (!feesFeedback) return;
+  feesFeedback.textContent = message;
+  feesFeedback.classList.remove('hidden');
+  feesFeedback.style.display = 'block';
+  feesFeedback.style.borderColor = type === 'error' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(245, 158, 11, 0.35)';
+  feesFeedback.style.background = type === 'error' ? 'rgba(127, 29, 29, 0.22)' : 'rgba(120, 53, 15, 0.22)';
+  feesFeedback.style.color = '#f3f4f6';
+  if (feesFeedbackTimer) window.clearTimeout(feesFeedbackTimer);
+  feesFeedbackTimer = window.setTimeout(() => {
+    feesFeedback.classList.add('hidden');
+    feesFeedback.style.display = 'none';
+  }, 4000);
+}
 
 function closeFeeChargeDeleteModal() {
   modalFeeChargeDelete?.classList.add('hidden');
@@ -1826,13 +1843,23 @@ function feesMonthEndDate(baseDate = new Date()) {
 function parseDateRangeValue(value) {
   const raw = String(value || '').trim();
   if (!raw) return { start: '', end: '' };
-  const parts = raw.split(' to ');
+  const parts = raw.split(/\s+(?:to|a)\s+/i);
   const start = parts[0] || '';
   const end = parts[1] || parts[0] || '';
   return { start, end };
 }
 
 function getPeriodRangePayload(inputEl) {
+  if (inputEl?._flatpickr?.selectedDates?.length) {
+    const dates = inputEl._flatpickr.selectedDates;
+    const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const start = formatDate(dates[0]);
+    const end = formatDate(dates[1] || dates[0]);
+    return {
+      period_start: start,
+      period_end: end,
+    };
+  }
   const { start, end } = parseDateRangeValue(inputEl?.value || '');
   if (!start || !end) return {};
   return {
@@ -2131,9 +2158,10 @@ btnFeesGenerateStudent?.addEventListener('click', async () => {
     await apiSend(`/api/fees/student/${feesSelectedStudentId}/charges/generate`, 'POST', payload);
     await loadFeesStudentDetail();
     await loadFeesOverview();
+    showFeesFeedback('Cuota generada correctamente.', 'info');
   } catch (err) {
     console.error(err);
-    alert(err?.message || 'No se pudo generar la cuota.');
+    showFeesFeedback(err?.message || 'No se pudo generar la cuota.', 'error');
   }
 });
 
@@ -2146,12 +2174,17 @@ btnFeesGenerateMonth?.addEventListener('click', async () => {
   };
   try {
     const res = await apiSend('/api/fees/generate-month', 'POST', payload);
-    alert(`Cuotas generadas: ${res?.created ?? 0}`);
+    const created = Number(res?.created ?? 0);
+    if (created > 0) {
+      showFeesFeedback(`Cuotas generadas: ${created}.`, 'info');
+    } else {
+      showFeesFeedback('No se generó ninguna cuota. Revisá el período seleccionado o si esas cuotas ya existen.', 'error');
+    }
     await loadFeesOverview();
     await loadFeesStudentDetail();
   } catch (err) {
     console.error(err);
-    alert(err?.message || 'No se pudieron generar cuotas.');
+    showFeesFeedback(err?.message || 'No se pudieron generar cuotas.', 'error');
   }
 });
 
