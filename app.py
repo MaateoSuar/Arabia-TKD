@@ -10,7 +10,7 @@ from datetime import datetime, date
 from copy import deepcopy
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 import os
 
 # ...
@@ -34,61 +34,40 @@ db = SQLAlchemy(app)
 
 with app.app_context():
     try:
-        from sqlalchemy import text
+        db.create_all()
 
-        with db.engine.connect() as conn:
-            # Intentar agregar columna notes si no existe
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN notes TEXT"))
-            except Exception:
-                pass
-
-            # Intentar agregar columna status si no existe
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN status TEXT DEFAULT 'activo'"))
-            except Exception:
-                pass
-
-            # Intentar agregar columna tutor_type si no existe (si ya existe, se ignora el error)
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN tutor_type TEXT DEFAULT 'padre'"))
-            except Exception:
-                pass
-
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN father_birthdate DATE"))
-            except Exception:
-                pass
-
-            try:
-                conn.execute(text("ALTER TABLE students ADD COLUMN mother_birthdate DATE"))
-            except Exception:
-                pass
-
-            conn.commit()
+        with db.engine.begin() as conn:
+            inspector = inspect(conn)
+            if 'students' in inspector.get_table_names():
+                student_columns = {col['name'] for col in inspector.get_columns('students')}
+                student_column_defs = {
+                    'notes': 'TEXT',
+                    'status': "TEXT DEFAULT 'activo'",
+                    'tutor_type': "TEXT DEFAULT 'padre'",
+                    'father_birthdate': 'DATE',
+                    'mother_birthdate': 'DATE',
+                }
+                for column_name, column_def in student_column_defs.items():
+                    if column_name not in student_columns:
+                        conn.execute(text(f"ALTER TABLE students ADD COLUMN {column_name} {column_def}"))
     except Exception:
         # Si falla (por ejemplo en SQLite viejo), se ignora y se asume que la tabla se recreará en limpio.
         pass
 
     # Asegurar columnas nuevas en fee_payments (migración liviana, idempotente)
     try:
-        from sqlalchemy import text
-
-        with db.engine.connect() as conn:
-            try:
-                conn.execute(text("ALTER TABLE fee_payments ADD COLUMN method TEXT DEFAULT 'cash'"))
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE fee_payments ADD COLUMN reference TEXT"))
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE fee_payments ADD COLUMN notes TEXT"))
-            except Exception:
-                pass
-
-            conn.commit()
+        with db.engine.begin() as conn:
+            inspector = inspect(conn)
+            if 'fee_payments' in inspector.get_table_names():
+                payment_columns = {col['name'] for col in inspector.get_columns('fee_payments')}
+                payment_column_defs = {
+                    'method': "TEXT DEFAULT 'cash'",
+                    'reference': 'TEXT',
+                    'notes': 'TEXT',
+                }
+                for column_name, column_def in payment_column_defs.items():
+                    if column_name not in payment_columns:
+                        conn.execute(text(f"ALTER TABLE fee_payments ADD COLUMN {column_name} {column_def}"))
     except Exception:
         pass
 
