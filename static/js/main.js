@@ -2166,13 +2166,21 @@ btnFeesGenerateStudent?.addEventListener('click', async () => {
 });
 
 btnFeesGenerateMonth?.addEventListener('click', async () => {
+  const monthlyAmount = Number(feesConfigMonthly?.value || 0);
+  if (monthlyAmount <= 0) {
+    showFeesFeedback('Primero configurá una tarifa mensual mayor a 0.', 'error');
+    return;
+  }
   const payload = {
     proration_mode: feesBulkProrationMode?.value || undefined,
     proration_percent: feesBulkProrationPercent?.value || undefined,
     start_date: feesBulkStartDate?.value || undefined,
     ...getPeriodRangePayload(feesBulkPeriod),
   };
+  const originalText = btnFeesGenerateMonth.textContent;
   try {
+    btnFeesGenerateMonth.disabled = true;
+    btnFeesGenerateMonth.textContent = 'Generando...';
     const res = await apiSend('/api/fees/generate-month', 'POST', payload);
     const created = Number(res?.created ?? 0);
     if (created > 0) {
@@ -2185,6 +2193,9 @@ btnFeesGenerateMonth?.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     showFeesFeedback(err?.message || 'No se pudieron generar cuotas.', 'error');
+  } finally {
+    btnFeesGenerateMonth.disabled = false;
+    btnFeesGenerateMonth.textContent = originalText;
   }
 });
 

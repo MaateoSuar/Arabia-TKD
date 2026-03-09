@@ -600,6 +600,8 @@ def _create_fee_charge(student_id: int, cfg: FeeConfig, settings: StudentFeeSett
         return False
 
     base_amount = float(cfg.monthly_amount or 0)
+    if base_amount <= 0:
+        return False
     discount_amount = _compute_discount_amount(base_amount, settings)
 
     proration_mode = body.get('proration_mode')
@@ -812,15 +814,18 @@ def _serialize_student_fees(student_id: int):
     ]
 
     balance_total = 0.0
+    positive_charges_count = 0
     for c in charges_out:
         try:
+            if float(c.get('final_amount') or 0) > 0:
+                positive_charges_count += 1
             balance_total += float(c.get('balance') or 0)
         except Exception:
             continue
 
     last_payment = payments[0].payment_date if payments else None
 
-    if not charges_out:
+    if not charges_out or positive_charges_count == 0:
         status = 'sin_registro'
     elif overdue_total > 0:
         status = 'vencida'
@@ -956,6 +961,8 @@ def api_fees_generate_charge(student_id: int):
         return jsonify({'error': 'Alumno no encontrado'}), 404
 
     cfg = _get_fee_config()
+    if float(cfg.monthly_amount or 0) <= 0:
+        return jsonify({'error': 'Configurá una tarifa mensual mayor a 0 antes de generar cuotas.'}), 400
     settings = _get_student_fee_settings(student_id)
     body = request.json or {}
 
@@ -981,6 +988,8 @@ def api_fees_generate_charge(student_id: int):
 @app.route('/api/fees/generate-month', methods=['POST'])
 def api_fees_generate_month_all():
     cfg = _get_fee_config()
+    if float(cfg.monthly_amount or 0) <= 0:
+        return jsonify({'error': 'Configurá una tarifa mensual mayor a 0 antes de generar cuotas.'}), 400
     body = request.json or {}
 
     periods = _list_periods_from_range(body.get('period_start'), body.get('period_end'))
@@ -1082,8 +1091,11 @@ def api_fees_overview():
         st_charges = charges_by_student.get(s.id, [])
         overdue_total = 0.0
         balance_total = 0.0
+        positive_charges_count = 0
         for c in st_charges:
             total = float(c.final_amount or 0)
+            if total > 0:
+                positive_charges_count += 1
             paid = paid_by_charge.get(c.id, 0.0)
             balance = round(total - paid, 2)
             if balance < 0:
@@ -1092,7 +1104,7 @@ def api_fees_overview():
             if c.due_date and today > c.due_date and balance > 0:
                 overdue_total += balance
 
-        if not st_charges:
+        if not st_charges or positive_charges_count == 0:
             status = 'sin_registro'
         elif overdue_total > 0:
             status = 'vencida'
