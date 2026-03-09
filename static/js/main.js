@@ -197,8 +197,10 @@ const recordAddress = document.getElementById('record-address');
 const recordSchool = document.getElementById('record-school');
 const recordFatherName = document.getElementById('record-father-name');
 const recordFatherPhone = document.getElementById('record-father-phone');
+const recordFatherBirthdate = document.getElementById('record-father-birthdate');
 const recordMotherName = document.getElementById('record-mother-name');
 const recordMotherPhone = document.getElementById('record-mother-phone');
+const recordMotherBirthdate = document.getElementById('record-mother-birthdate');
 const recordParentEmail = document.getElementById('record-parent-email');
 
 // Modal de eliminación de alumno
@@ -260,8 +262,10 @@ function openStudentRecord(student) {
   if (recordSchool) recordSchool.textContent = student.school || '-';
   if (recordFatherName) recordFatherName.textContent = student.father_name || '-';
   if (recordFatherPhone) recordFatherPhone.textContent = student.father_phone || '-';
+  if (recordFatherBirthdate) recordFatherBirthdate.textContent = student.father_birthdate ? formatDateForDisplay(student.father_birthdate) : '-';
   if (recordMotherName) recordMotherName.textContent = student.mother_name || '-';
   if (recordMotherPhone) recordMotherPhone.textContent = student.mother_phone || '-';
+  if (recordMotherBirthdate) recordMotherBirthdate.textContent = student.mother_birthdate ? formatDateForDisplay(student.mother_birthdate) : '-';
   if (recordParentEmail) recordParentEmail.textContent = student.parent_email || '-';
 
   modalStudentRecord?.classList.remove('hidden');
@@ -398,7 +402,16 @@ function openStudentModal(editData) {
     document.getElementById('student-gender').value = editData.gender || '';
     const birthInput = document.getElementById('student-birthdate');
     const birthDisplay = document.getElementById('student-birthdate-display');
-    if (birthInput) birthInput.value = editData.birthdate || '';
+    if (birthInput) {
+      birthInput.value = editData.birthdate || '';
+      if (birthInput._flatpickr) {
+        if (editData.birthdate) {
+          birthInput._flatpickr.setDate(editData.birthdate, true);
+        } else {
+          birthInput._flatpickr.clear();
+        }
+      }
+    }
     if (birthDisplay) {
       birthDisplay.textContent = formatDateForDisplay(editData.birthdate || '');
     }
@@ -414,7 +427,29 @@ function openStudentModal(editData) {
     document.getElementById('student-father-name').value = editData.father_name || '';
     document.getElementById('student-mother-name').value = editData.mother_name || '';
     document.getElementById('student-father-phone').value = editData.father_phone || '';
+    const fatherBirthInput = document.getElementById('student-father-birthdate');
+    if (fatherBirthInput) {
+      fatherBirthInput.value = editData.father_birthdate || '';
+      if (fatherBirthInput._flatpickr) {
+        if (editData.father_birthdate) {
+          fatherBirthInput._flatpickr.setDate(editData.father_birthdate, true);
+        } else {
+          fatherBirthInput._flatpickr.clear();
+        }
+      }
+    }
     document.getElementById('student-mother-phone').value = editData.mother_phone || '';
+    const motherBirthInput = document.getElementById('student-mother-birthdate');
+    if (motherBirthInput) {
+      motherBirthInput.value = editData.mother_birthdate || '';
+      if (motherBirthInput._flatpickr) {
+        if (editData.mother_birthdate) {
+          motherBirthInput._flatpickr.setDate(editData.mother_birthdate, true);
+        } else {
+          motherBirthInput._flatpickr.clear();
+        }
+      }
+    }
     document.getElementById('student-parent-email').value = editData.parent_email || '';
     const notesEl = document.getElementById('student-notes');
     if (notesEl) notesEl.value = editData.notes || '';
@@ -430,8 +465,27 @@ function openStudentModal(editData) {
 
     const birthInput = document.getElementById('student-birthdate');
     const birthDisplay = document.getElementById('student-birthdate-display');
-    if (birthInput) birthInput.value = '';
+    if (birthInput) {
+      birthInput.value = '';
+      if (birthInput._flatpickr) {
+        birthInput._flatpickr.clear();
+      }
+    }
     if (birthDisplay) birthDisplay.textContent = 'Seleccionar fecha';
+    const fatherBirthInput = document.getElementById('student-father-birthdate');
+    if (fatherBirthInput) {
+      fatherBirthInput.value = '';
+      if (fatherBirthInput._flatpickr) {
+        fatherBirthInput._flatpickr.clear();
+      }
+    }
+    const motherBirthInput = document.getElementById('student-mother-birthdate');
+    if (motherBirthInput) {
+      motherBirthInput.value = '';
+      if (motherBirthInput._flatpickr) {
+        motherBirthInput._flatpickr.clear();
+      }
+    }
     const tutorSelect = document.getElementById('student-tutor-type');
     if (tutorSelect) tutorSelect.value = '';
   }
@@ -649,6 +703,8 @@ async function loadStudents() {
 
       studentsTbody.appendChild(tr);
     });
+
+    renderCalendar();
   } catch (e) {
     console.error(e);
   }
@@ -731,7 +787,9 @@ studentForm?.addEventListener('submit', async (e) => {
     father_name: document.getElementById('student-father-name').value,
     mother_name: document.getElementById('student-mother-name').value,
     father_phone: document.getElementById('student-father-phone').value,
+    father_birthdate: document.getElementById('student-father-birthdate').value,
     mother_phone: document.getElementById('student-mother-phone').value,
+    mother_birthdate: document.getElementById('student-mother-birthdate').value,
     parent_email: document.getElementById('student-parent-email').value,
     notes: document.getElementById('student-notes').value,
     tutor_type: document.getElementById('student-tutor-type').value || undefined,
@@ -745,6 +803,7 @@ studentForm?.addEventListener('submit', async (e) => {
     }
     closeStudentModal();
     loadStudents();
+    renderCalendar();
   } catch (err) {
     console.error(err);
   }
@@ -822,6 +881,48 @@ let currentYearMonth = (() => {
 })();
 
 let eventsCache = [];
+
+function getFamilyBirthdayEntriesForDate(dateStr) {
+  const [, mStr, dStr] = String(dateStr || '').split('-');
+  const cellMonth = Number(mStr);
+  const cellDay = Number(dStr);
+  if (!cellMonth || !cellDay) return [];
+
+  const entries = [];
+  studentsCache.forEach((s) => {
+    const studentName = s.full_name || `${s.last_name || ''} ${s.first_name || ''}`;
+
+    const fatherParts = String(s.father_birthdate || '').split('-');
+    if (fatherParts.length === 3) {
+      const fatherMonth = Number(fatherParts[1]);
+      const fatherDay = Number(fatherParts[2]);
+      if (fatherMonth === cellMonth && fatherDay === cellDay) {
+        entries.push({
+          type: 'family_birthday',
+          relation: 'padre',
+          student_name: studentName.trim(),
+          person_name: s.father_name || 'Padre',
+        });
+      }
+    }
+
+    const motherParts = String(s.mother_birthdate || '').split('-');
+    if (motherParts.length === 3) {
+      const motherMonth = Number(motherParts[1]);
+      const motherDay = Number(motherParts[2]);
+      if (motherMonth === cellMonth && motherDay === cellDay) {
+        entries.push({
+          type: 'family_birthday',
+          relation: 'madre',
+          student_name: studentName.trim(),
+          person_name: s.mother_name || 'Madre',
+        });
+      }
+    }
+  });
+
+  return entries;
+}
 
 function renderCalendar() {
   if (!calendarGrid || !calendarMonthLabel) return;
@@ -902,11 +1003,13 @@ function renderCalendar() {
       const bdDay = Number(parts[2]);
       return bdMonth === cellMonth && bdDay === cellDay;
     });
+    const familyBirthdays = getFamilyBirthdayEntriesForDate(dateStr);
+    const hasFamilyBirthday = familyBirthdays.length > 0;
 
     if (hasEvent) {
-      evDot.className = hasBirthday ? 'calendar-event-dot calendar-birthday-dot' : 'calendar-event-dot';
+      evDot.className = (hasBirthday || hasFamilyBirthday) ? 'calendar-event-dot calendar-birthday-dot' : 'calendar-event-dot';
       if (hasExam) cell.classList.add('calendar-cell-exam');
-    } else if (hasBirthday) {
+    } else if (hasBirthday || hasFamilyBirthday) {
       evDot.className = 'calendar-event-dot calendar-birthday-dot';
       cell.classList.add('calendar-cell-birthday');
     }
@@ -935,8 +1038,9 @@ function showDayEvents(dateStr) {
     const bdDay = Number(parts[2]);
     return bdMonth === cellMonth && bdDay === cellDay;
   });
+  const familyBirthdays = getFamilyBirthdayEntriesForDate(dateStr);
 
-  if (!dayEvents.length && !birthdays.length) {
+  if (!dayEvents.length && !birthdays.length && !familyBirthdays.length) {
     calendarDetailsBody.textContent = 'Sin eventos para este día.';
     return;
   }
@@ -960,6 +1064,13 @@ function showDayEvents(dateStr) {
     li.style.marginBottom = '4px';
     const name = s.full_name || `${s.last_name || ''} ${s.first_name || ''}`;
     li.textContent = `[Cumpleaños] ${name}`;
+    list.appendChild(li);
+  });
+
+  familyBirthdays.forEach((item) => {
+    const li = document.createElement('li');
+    li.style.marginBottom = '4px';
+    li.textContent = `[Cumpleaños] ${item.person_name} (${item.relation}) de ${item.student_name}`;
     list.appendChild(li);
   });
 
@@ -1605,6 +1716,16 @@ const feesStudentContent = document.getElementById('fees-student-content');
 const feesStudentNameEl = document.getElementById('fees-student-name');
 const feesStudentMetaEl = document.getElementById('fees-student-meta');
 const feesStudentStatusEl = document.getElementById('fees-student-status');
+const modalFeeChargeDelete = document.getElementById('modal-fee-charge-delete');
+const btnCloseFeeChargeDelete = document.getElementById('btn-close-fee-charge-delete');
+const btnCancelFeeChargeDelete = document.getElementById('btn-cancel-fee-charge-delete');
+const btnConfirmFeeChargeDelete = document.getElementById('btn-confirm-fee-charge-delete');
+const feeChargeDeleteMessage = document.getElementById('fee-charge-delete-message');
+const modalFeePaymentDelete = document.getElementById('modal-fee-payment-delete');
+const btnCloseFeePaymentDelete = document.getElementById('btn-close-fee-payment-delete');
+const btnCancelFeePaymentDelete = document.getElementById('btn-cancel-fee-payment-delete');
+const btnConfirmFeePaymentDelete = document.getElementById('btn-confirm-fee-payment-delete');
+const feePaymentDeleteMessage = document.getElementById('fee-payment-delete-message');
 
 const feesChargesTbody = document.getElementById('fees-charges-tbody');
 const feesChargesEmpty = document.getElementById('fees-charges-empty');
@@ -1632,6 +1753,59 @@ const feesDiscountValue = document.getElementById('fees-discount-value');
 let feesOverviewCache = [];
 let feesSelectedStudentId = null;
 let feesSelectedStudentData = null;
+let pendingFeeChargeDelete = null;
+let pendingFeePaymentDelete = null;
+
+function closeFeeChargeDeleteModal() {
+  modalFeeChargeDelete?.classList.add('hidden');
+  pendingFeeChargeDelete = null;
+}
+
+function closeFeePaymentDeleteModal() {
+  modalFeePaymentDelete?.classList.add('hidden');
+  pendingFeePaymentDelete = null;
+}
+
+btnCloseFeeChargeDelete?.addEventListener('click', closeFeeChargeDeleteModal);
+btnCancelFeeChargeDelete?.addEventListener('click', closeFeeChargeDeleteModal);
+btnCloseFeePaymentDelete?.addEventListener('click', closeFeePaymentDeleteModal);
+btnCancelFeePaymentDelete?.addEventListener('click', closeFeePaymentDeleteModal);
+
+btnConfirmFeeChargeDelete?.addEventListener('click', async () => {
+  if (!pendingFeeChargeDelete || pendingFeeChargeDelete.id == null) {
+    closeFeeChargeDeleteModal();
+    return;
+  }
+
+  try {
+    await apiSend(`/api/fees/charge/${pendingFeeChargeDelete.id}`, 'DELETE');
+    await loadFeesStudentDetail();
+    await loadFeesOverview();
+  } catch (err) {
+    console.error(err);
+    alert(err?.message || 'No se pudo borrar la cuota.');
+  } finally {
+    closeFeeChargeDeleteModal();
+  }
+});
+
+btnConfirmFeePaymentDelete?.addEventListener('click', async () => {
+  if (!pendingFeePaymentDelete || pendingFeePaymentDelete.id == null) {
+    closeFeePaymentDeleteModal();
+    return;
+  }
+
+  try {
+    await apiSend(`/api/fees/payment/${pendingFeePaymentDelete.id}`, 'DELETE');
+    await loadFeesStudentDetail();
+    await loadFeesOverview();
+  } catch (err) {
+    console.error(err);
+    alert(err?.message || 'No se pudo borrar el pago.');
+  } finally {
+    closeFeePaymentDeleteModal();
+  }
+});
 
 function feesTodayDate() {
   const d = new Date();
@@ -1852,8 +2026,25 @@ function renderFeesStudentDetail(data) {
       <td>$${Number(c.paid_amount || 0).toFixed(2)}</td>
       <td>$${Number(c.balance || 0).toFixed(2)}</td>
       <td></td>
+      <td></td>
     `;
     tr.children[5].appendChild(feesChargeStatusToPill(c));
+    const actionsTd = tr.children[6];
+    if (c.id != null) {
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn-secondary';
+      delBtn.textContent = 'Eliminar';
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        pendingFeeChargeDelete = c;
+        if (feeChargeDeleteMessage) {
+          feeChargeDeleteMessage.textContent = `¿Seguro que querés eliminar la cuota ${normalizePeriodLabel(c.period, c.due_date)}? Esta acción no se puede deshacer.`;
+        }
+        modalFeeChargeDelete?.classList.remove('hidden');
+      });
+      actionsTd.appendChild(delBtn);
+    }
     feesChargesTbody?.appendChild(tr);
   });
 
@@ -1895,9 +2086,10 @@ function renderFeesStudentDetail(data) {
       <td>$${Number(p.amount || 0).toFixed(2)}</td>
       <td>${methodLabel}</td>
       <td>${p.reference || '-'}</td>
+      <td>${p.notes || '-'}</td>
       <td></td>
     `;
-    const actionsTd = tr.children[4];
+    const actionsTd = tr.children[5];
     if (p.id != null) {
       const del = document.createElement('button');
       del.type = 'button';
@@ -1905,13 +2097,11 @@ function renderFeesStudentDetail(data) {
       del.textContent = 'Eliminar';
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
-        try {
-          await apiSend(`/api/fees/payment/${p.id}`, 'DELETE');
-          await loadFeesStudentDetail();
-          await loadFeesOverview();
-        } catch (err) {
-          console.error(err);
+        pendingFeePaymentDelete = p;
+        if (feePaymentDeleteMessage) {
+          feePaymentDeleteMessage.textContent = `¿Seguro que querés eliminar el pago de ${formatFeesDate(p.payment_date)} por $${Number(p.amount || 0).toFixed(2)}? Las cuotas relacionadas volverán a quedar pendientes o parciales según corresponda.`;
         }
+        modalFeePaymentDelete?.classList.remove('hidden');
       });
       actionsTd.appendChild(del);
     }
@@ -2186,5 +2376,21 @@ setupStudentNameAutocomplete(
     locale: 'es',
     disableMobile: true,
     // No defaultDate para obligar a elegir nacimiento
+  });
+
+  flatpickr('#student-father-birthdate', {
+    dateFormat: 'Y-m-d',
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
+  });
+
+  flatpickr('#student-mother-birthdate', {
+    dateFormat: 'Y-m-d',
+    altInput: true,
+    altFormat: 'd/m/Y',
+    locale: 'es',
+    disableMobile: true,
   });
 })();

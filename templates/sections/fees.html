@@ -29,7 +29,9 @@
             No hay alumnos activos para mostrar.
           </div>
         </div>
+      </section>
 
+      <section class="fees-column fees-column-right">
         <h4 class="subheading">Acciones del mes</h4>
         <div class="martial-form fees-bulk-form">
           <div class="form-grid">
@@ -85,9 +87,7 @@
             <button type="button" id="btn-save-fees-config" class="btn-secondary">Guardar config</button>
           </div>
         </div>
-      </section>
 
-      <section class="fees-column fees-column-right">
         <h4 class="subheading">Detalle</h4>
 
         <div id="fees-student-empty" class="fees-student-empty text-muted">
@@ -141,6 +141,7 @@
                   <th>Pagado</th>
                   <th>Saldo</th>
                   <th>Estado</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="fees-charges-tbody"></tbody>
@@ -195,6 +196,7 @@
                   <th>Monto</th>
                   <th>Método</th>
                   <th>Ref</th>
+                  <th>Notas</th>
                   <th></th>
                 </tr>
               </thead>
@@ -225,6 +227,44 @@
           </form>
         </div>
       </section>
+    </div>
+  </div>
+</div>
+
+<div id="modal-fee-payment-delete" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="section-heading">Eliminar pago</h3>
+      <button id="btn-close-fee-payment-delete" class="btn-icon">✕</button>
+    </div>
+    <div class="martial-form">
+      <p class="text-muted" id="fee-payment-delete-message">
+        ¿Seguro que querés eliminar este pago? Las cuotas relacionadas volverán a quedar pendientes o parciales según corresponda.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancel-fee-payment-delete">Cancelar</button>
+        <button type="button" class="btn-martial" id="btn-confirm-fee-payment-delete">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-fee-charge-delete" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="section-heading">Eliminar cuota</h3>
+      <button id="btn-close-fee-charge-delete" class="btn-icon">✕</button>
+    </div>
+    <div class="martial-form">
+      <p class="text-muted" id="fee-charge-delete-message">
+        ¿Seguro que querés eliminar esta cuota generada? Esta acción no se puede deshacer.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancel-fee-charge-delete">Cancelar</button>
+        <button type="button" class="btn-martial" id="btn-confirm-fee-charge-delete">Eliminar</button>
+      </div>
     </div>
   </div>
 </div>

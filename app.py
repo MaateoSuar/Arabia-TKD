@@ -55,6 +55,16 @@ with app.app_context():
             except Exception:
                 pass
 
+            try:
+                conn.execute(text("ALTER TABLE students ADD COLUMN father_birthdate DATE"))
+            except Exception:
+                pass
+
+            try:
+                conn.execute(text("ALTER TABLE students ADD COLUMN mother_birthdate DATE"))
+            except Exception:
+                pass
+
             conn.commit()
     except Exception:
         # Si falla (por ejemplo en SQLite viejo), se ignora y se asume que la tabla se recreará en limpio.
@@ -103,6 +113,8 @@ class Student(db.Model):
     belt = db.Column(db.String(40))
     father_name = db.Column(db.String(200))
     mother_name = db.Column(db.String(200))
+    father_birthdate = db.Column(db.Date)
+    mother_birthdate = db.Column(db.Date)
     father_phone = db.Column(db.String(40))
     mother_phone = db.Column(db.String(40))
     parent_email = db.Column(db.String(120))
@@ -241,6 +253,8 @@ def api_students():
                 'belt': s.belt,
                 'father_name': s.father_name,
                 'mother_name': s.mother_name,
+                'father_birthdate': s.father_birthdate.isoformat() if s.father_birthdate else None,
+                'mother_birthdate': s.mother_birthdate.isoformat() if s.mother_birthdate else None,
                 'father_phone': s.father_phone,
                 'mother_phone': s.mother_phone,
                 'parent_email': s.parent_email,
@@ -258,6 +272,22 @@ def api_students():
             birthdate_parsed = datetime.strptime(birthdate_val, '%Y-%m-%d').date()
         except ValueError:
             birthdate_parsed = None
+
+    father_birthdate_val = data.get('father_birthdate')
+    father_birthdate_parsed = None
+    if father_birthdate_val:
+        try:
+            father_birthdate_parsed = datetime.strptime(father_birthdate_val, '%Y-%m-%d').date()
+        except ValueError:
+            father_birthdate_parsed = None
+
+    mother_birthdate_val = data.get('mother_birthdate')
+    mother_birthdate_parsed = None
+    if mother_birthdate_val:
+        try:
+            mother_birthdate_parsed = datetime.strptime(mother_birthdate_val, '%Y-%m-%d').date()
+        except ValueError:
+            mother_birthdate_parsed = None
 
     student = Student(
         full_name=data.get('full_name', ''),
@@ -277,6 +307,8 @@ def api_students():
         belt=data.get('belt'),
         father_name=data.get('father_name'),
         mother_name=data.get('mother_name'),
+        father_birthdate=father_birthdate_parsed,
+        mother_birthdate=mother_birthdate_parsed,
         father_phone=data.get('father_phone'),
         mother_phone=data.get('mother_phone'),
         parent_email=data.get('parent_email'),
@@ -316,6 +348,8 @@ def api_student_detail(student_id: int):
             'belt': student.belt,
             'father_name': student.father_name,
             'mother_name': student.mother_name,
+            'father_birthdate': student.father_birthdate.isoformat() if student.father_birthdate else None,
+            'mother_birthdate': student.mother_birthdate.isoformat() if student.mother_birthdate else None,
             'father_phone': student.father_phone,
             'mother_phone': student.mother_phone,
             'parent_email': student.parent_email,
@@ -340,6 +374,18 @@ def api_student_detail(student_id: int):
                 student.birthdate = datetime.strptime(data['birthdate'], '%Y-%m-%d').date()
             except (ValueError, TypeError):
                 student.birthdate = None
+
+        if 'father_birthdate' in data:
+            try:
+                student.father_birthdate = datetime.strptime(data['father_birthdate'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                student.father_birthdate = None
+
+        if 'mother_birthdate' in data:
+            try:
+                student.mother_birthdate = datetime.strptime(data['mother_birthdate'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                student.mother_birthdate = None
 
         db.session.commit()
         return jsonify({'status': 'ok'})
@@ -997,6 +1043,21 @@ def api_fees_generate_month_all():
         return jsonify({'error': 'No se pudieron generar cuotas'}), 400
 
     return jsonify({'created': created})
+
+
+@app.route('/api/fees/charge/<int:charge_id>', methods=['DELETE'])
+def api_fees_delete_charge(charge_id: int):
+    charge = FeeCharge.query.get(charge_id)
+    if not charge:
+        return '', 204
+
+    allocations_count = FeeAllocation.query.filter_by(charge_id=charge.id).count()
+    if allocations_count > 0:
+        return jsonify({'error': 'No se puede borrar la cuota porque ya tiene pagos aplicados.'}), 400
+
+    db.session.delete(charge)
+    db.session.commit()
+    return '', 204
 
 
 @app.route('/api/fees/overview', methods=['GET'])
